@@ -42,7 +42,7 @@ For [django-tex](https://github.com/weinbusch/django-tex) you should set `DEFAUL
 
 All you need to do to render your Wagtail page as PDF, is to inherit from `PdfModelMixin`.
 
-If you want to use latex, read the latex section below.
+**If you want to use latex, read the latex section below.**
 
 Further configuration options include:
 - `ROUTE_CONFIG` to enable rendering of the default HTML view and the PDF view at the same time
@@ -51,8 +51,18 @@ Further configuration options include:
 
 ## Examples
 
+A very simple example page using Wagtails StreamField.
+Like for a regular Wagtail page, the template should be located under: `<app_dir>/templates/<app>/simple_pdf_page.html`
+**If you're using django-tex the template extention .tex is expected**.
 
 ```py
+from wagtail.core.models import Page
+from wagtail.core.fields import RichTextField, StreamField
+from wagtail.core import blocks
+from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel
+
+from wagtail_pdf_view.mixins import PdfViewPageMixin
+
 # Inherit from PdfViewPageMixin
 class SimplePdfPage(PdfViewPageMixin, Page):
     
@@ -67,8 +77,8 @@ class SimplePdfPage(PdfViewPageMixin, Page):
         StreamFieldPanel("content"),
     ]
     
-    # if you want to include a stylesheet
-    stylesheets = ["css/your_stylesheet.css"]
+    # OPTIONAL: If you want to include a stylesheet
+    #stylesheets = ["css/your_stylesheet.css"]
 ```
 
 ### Usage of `ROUTE_CONFIG`:
@@ -107,10 +117,42 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
 
 When you want to use latex instead of HTML, you should be aware of the following:
 
-Set `DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView` in your settings.
+You need to add django_tex to `INSTALLED_APPS`:
+
+```py
+INSTALLED_APPS = [
+    ...
+    'django_tex',
+    ...
+]
+```
+
+You need to add the jinja tex engine to `TEMPLATES` in your settings.py:
+```py
+TEMPLATES += [
+    {
+        'NAME': 'tex',
+        'BACKEND': 'django_tex.engine.TeXEngine', 
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'environment': 'wagtail_pdf_view.environment.latex_environment',
+        },
+    },
+]
+```
+
+Set `DEFAULT_PDF_VIEW_PROVIDER` in your settings:
+
+```
+from wagtail_pdf_view.views import WagtailTexView
+DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView
+```
+
 In case you just want to use latex for a specific model settings you can overrite `PDF_VIEW_PROVIDER`:
 
 ```
+from wagtail_pdf_view.views import WagtailTexView
+
 class SimplePdfPage(PdfViewPageMixin, Page):
 
     # render with LaTeX instead

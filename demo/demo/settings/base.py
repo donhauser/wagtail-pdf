@@ -31,10 +31,8 @@ INSTALLED_APPS = [
     'home',
     'search',
     
-    'wagtail_pdf_view',  # TODO move up??
+    'wagtail_pdf_view',
     
-    #'django_tex', # TODO if django tex
-
     'wagtail.contrib.forms',
     'wagtail.contrib.redirects',
     'wagtail.embeds',
@@ -61,6 +59,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+if django_tex:
+    INSTALLED_APPS += ['django_tex']
 
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -101,12 +102,7 @@ if django_tex:
             'BACKEND': 'django_tex.engine.TeXEngine', 
             'APP_DIRS': True,
             'OPTIONS': {
-                'environment': 'home.environment.my_environment', # TODO change this
-                'extensions': [
-                    #'wagtail.core.jinja2tags.core',
-                    #'wagtail.admin.jinja2tags.userbar',
-                    #'wagtail.images.jinja2tags.images',
-                ],
+                'environment': 'wagtail_pdf_view.environment.latex_environment',
             },
         },
     ]
