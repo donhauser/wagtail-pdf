@@ -86,7 +86,7 @@ class SimplePdfPage(PdfViewPageMixin, Page):
 A HTML first page, you can access the wagtail page as you're used e.g. *127.0.0.1/mypage*.
 The PDF version will be available under *pdf/* e.g. *127.0.0.1/mypage/pdf*
 
-```
+```py
 class HtmlAndPdfPage(PdfViewPageMixin, Page):
 
     # HTML first
@@ -100,7 +100,7 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
 A PDF first page, the PDF version is displayed with the regular url and
 you can access the wagtail page under */html*, e.g. *127.0.0.1/mypage/html*
 
-```
+```py
 class HtmlAndPdfPage(PdfViewPageMixin, Page):
     
     # PDF first
@@ -143,14 +143,14 @@ TEMPLATES += [
 
 Set `DEFAULT_PDF_VIEW_PROVIDER` in your settings:
 
-```
+```py
 from wagtail_pdf_view.views import WagtailTexView
 DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView
 ```
 
 In case you just want to use latex for a specific model settings you can overrite `PDF_VIEW_PROVIDER`:
 
-```
+```py
 from wagtail_pdf_view.views import WagtailTexView
 
 class SimplePdfPage(PdfViewPageMixin, Page):
