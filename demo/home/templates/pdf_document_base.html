@@ -1,0 +1,53 @@
+{% load wagtailcore_tags %}
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <title>{{page.title}}</title>
+    <meta name="author" content="{% block author %}{% endblock %}">
+    
+    <style>
+        img {
+            max-width: 100%;
+        }
+    
+        img.richtext-image.full-width {
+            width: 100%;
+        }
+        
+        img.richtext-image.right, img.richtext-image.left {
+            max-width: 40%;
+            margin: 0.5em 1em;
+        }
+        
+        img.richtext-image.right {
+            float: right;
+            margin-right: 0;
+        }
+        
+        img.richtext-image.left {
+            float: left;
+            left: 0;
+        }
+    </style>
+  </head>
+  <body>
+   
+    <header>
+        {% block header %}
+        {% endblock %}
+    </header>
+    <main>
+        {% block address %}
+        {% endblock %}
+        
+        {% block document_content %}
+        {% endblock %}
+    </main>
+    <footer>
+        {% block footer %}
+        {% endblock %}
+    </footer>
+    
+  </body>
+</html>

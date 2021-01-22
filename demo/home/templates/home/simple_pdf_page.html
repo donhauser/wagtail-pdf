@@ -1,0 +1,71 @@
+{% load static %}
+
+
+{% load wagtailcore_tags %}
+<!DOCTYPE html>
+<html lang="">
+    <head>
+        <meta charset="utf-8">
+        <title>{{page.title}}</title>
+        <meta name="author" content="page.author">
+        
+        <style>
+            body {
+                color: #222;
+            }
+        
+            h1 {
+                background-color: #aaf;
+                width: 100%;
+                padding: 0.2em 0.5em;
+            }
+            
+            p {
+                border-left: 0.5em solid #aaf;
+                padding-left: 1em;
+            }
+            
+            img {
+                max-width: 100%;
+            }
+            
+            img.richtext-image.full-width {
+                width: 100%;
+            }
+            
+            img.richtext-image.right, img.richtext-image.left {
+                max-width: 40%;
+                margin: 0.5em 1em;
+            }
+            
+            img.richtext-image.right {
+                float: right;
+                margin-right: 0;
+            }
+            
+            img.richtext-image.left {
+                float: left;
+                left: 0;
+            }
+        </style>
+    </head>
+    <body>
+
+        <h1>{{page.title}}</h1>
+        
+        {# simply include all blocks #}
+        
+        {% for block in page.content %}
+            {% if block.block_type == 'heading' %}
+                <h2>{{ block.value }}</h2>
+            {% else %}
+                {% include_block block %}
+            {% endif %}
+        {% endfor %}
+        
+        A static demo image:
+        
+        <img src="{% static "butterfly.jpg"%}"/>
+
+    </body>
+</html>

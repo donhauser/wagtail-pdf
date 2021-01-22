@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "Roboto-Regular";
+    src: url("/static/font/Roboto-Regular.ttf");
+}
+
+body {
+    font-family: "Roboto-Regular";
+    background-image: url("/static/webb.png");
+}

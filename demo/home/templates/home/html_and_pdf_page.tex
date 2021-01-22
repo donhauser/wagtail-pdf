@@ -1,0 +1,38 @@
+
+\documentclass{article}
+
+% Load required packages and commands for propper richtext handling
+{% include 'wagtail_preamble.tex' %}
+
+%% You can set width for the richtext image insertion
+% 
+% {% raw %}
+% \renewcommand{\fullwidth} {0.8\textwidth}
+% \renewcommand{\partialwidth} {0.5\textwidth}
+% {% endraw  %} 
+
+
+\begin{document}
+
+% Set the documents 
+
+\author{ {{-page.author-}} }
+\date{ {{-page.creation_date-}} }
+
+% this is the default title, you can simply overwrite it
+%\title{ {{-page.title-}} }
+
+\maketitle
+
+{% for block in page.content %}
+    {% if block.block_type == 'heading' %}
+        \section{ {{- block.value -}} }
+    {% elif block.block_type == 'image' %}
+        \textbf{Image blocks are not supported in this tex mode demo yet.}
+    {% else %}
+        {% include_block block %}
+    {% endif %}
+{% endfor %}
+
+
+\end{document}

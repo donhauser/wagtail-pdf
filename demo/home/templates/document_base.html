@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+    
+{% endblock %}
+
+{% block content%}
+    <div class="section-wrapper">
+        <section>
+            <div class="header">
+                {% block document_header %}
+                {% endblock %}
+            </div>
+            <main>
+                {% block document_address %}
+                {% endblock %}
+                
+                {% block document_content %}
+                {% endblock %}
+            </main>
+            <div class="footer">
+                {% block document_footer %}
+                {% endblock %}
+            </div>
+            
+        </section>
+    </div>
+{% endblock %}

@@ -1,0 +1,50 @@
+
+{% extends override_base|default:'document_base.html' %}
+
+{% load static %}
+{% load wagtailcore_tags %}
+
+    {% block author %}{{page.author}}{% endblock %}
+
+    {% block document_header %}
+        <h3>Company Name</h3>
+        <p>Some fancy company description</p>
+        <a href="#">your.company.website.url</a>
+    {% endblock %}
+
+
+    {% block document_address %}
+    
+    <aside class="small">
+      <address class="left">
+        {{address}}
+      </address>
+
+      <address class="right">
+        {{ page.creation_date }}
+      </address>
+    </aside>
+    
+    {% endblock %}
+        
+    {% block document_content %}
+    
+        <h1>{{page.title}}</h1>
+
+        {% for block in page.content %}
+            {% if block.block_type == 'heading' %}
+                <h2>{{ block.value }}</h2>
+            {% elif block.block_type == 'image' %}
+                {% load wagtailimages_tags %}
+                {# {% image block.value max-320x200 %} #}
+                {% include_block block %}
+            {% else %}
+                {% include_block block %}
+            {% endif %}
+        {% endfor %}
+        
+    {% endblock %}
+    
+    {% block document_footer %}
+        You can place your <b>Footer here</b>!
+    {% endblock %}
