@@ -6,6 +6,7 @@ With this extension you can utilize all the benefits from the wagtail page syste
 *StreamField* and *RichText* for your generated PDF document.
 
 Currently [weasyprint](https://github.com/Kozea/WeasyPrint) (for HTML to PDF conversion) and latex is supported.
+If you are undecided which one to use, [weasyprint](https://github.com/Kozea/WeasyPrint) is recommended.
 
 ## Installing
 
