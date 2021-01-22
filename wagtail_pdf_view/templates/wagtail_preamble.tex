@@ -1,0 +1,58 @@
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{xstring}
+\usepackage{float}
+
+{% raw  %} 
+
+% Wagtail image insertion for richtext
+\newcommand{\wagtailimage}[2]{%
+    % 
+    % Check for wagtail image classes
+    %
+    \IfSubStr{#2}{full-width}%
+    {%
+        {%
+        \centering
+        \includegraphics[width=\fullwidth]{{#1}}%
+        
+        }\par%
+        % you can use this to prevent indent after fullwidth images
+        % \noindent\\
+    }%
+    {%
+        \IfSubStr{#2}{right}%
+        {%
+            \begin{wrapfigure}{R}{\partialwidth}
+            \includegraphics[width=\partialwidth]{{#1}}%
+            \end{wrapfigure}
+        }%
+        {%
+
+        \IfSubStr{#2}{left}%
+        {%
+            \begin{wrapfigure}{L}{\partialwidth}
+            \includegraphics[width=\partialwidth]{{#1}}%
+            \end{wrapfigure}
+        }%
+        {\includegraphics{{#1}}}
+        }%
+    }%
+}
+
+
+% default values for the image width (e.g. \includegraphics[width=\fullwidth]{..})
+\newcommand{\fullwidth} {\textwidth}
+\newcommand{\partialwidth} {0.4\textwidth}
+
+
+{% endraw  %} 
+
+% Include django-tex graphicspath handling
+{% graphicspath %}
+
+
+\title{ {{-page.title-}} }
+
+
