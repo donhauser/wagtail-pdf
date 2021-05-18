@@ -10,6 +10,13 @@ except ImportError:
 
 from wagtail.core import blocks
 
+import re
+from html.parser import HTMLParser
+
+from django.utils.safestring import mark_safe
+from django.conf import settings
+
+
 class WagtailCoreExtensionLatex(WagtailCoreExtension):
     
     def _include_block(self, value, context=None):
@@ -30,8 +37,6 @@ class WagtailCoreExtensionLatex(WagtailCoreExtension):
         return super()._include_block(value, context=context)
 
 
-from html.parser import HTMLParser
-
 def latex_escape(string):
     # Map every special latex character to its escaped version
     
@@ -45,7 +50,6 @@ def latex_escape(string):
 
     return string
 
-from django.utils.safestring import mark_safe
 
 class SimpleHtmlToLatexParser(HTMLParser):
     """
@@ -61,8 +65,8 @@ class SimpleHtmlToLatexParser(HTMLParser):
     
     # Some simple HTML Tags, which have a similar representation in latex
     mapping = {
-        'i': ["\\textit{", "}"],
-        'b': ["\\textbf{", "}"],
+        'i': [" \\textit{", "} "],
+        'b': [" \\textbf{", "} "],
         'p': ["\n", "\n"],
         'h1': ["\n\\section{", "}\n"],
         'h2': ["\n\\subsection{", "}\n"],
@@ -125,19 +129,26 @@ class SimpleHtmlToLatexParser(HTMLParser):
         # process html
         self.feed(html)
         
+        latex = "".join(self.latex)
+        
+        # remove multiple spaces
+        latex = re.sub(' +', ' ', latex)
+        
         # we're outputting latex so autoescape does not make any sense.
-        return mark_safe("".join(self.latex))
+        return mark_safe(latex)
 
-
-from django.conf import settings
 
 # The user may define a custom latex parser
 HTML_TO_LATEX_PARSER = getattr(settings, "HTML_TO_LATEX_PARSER", SimpleHtmlToLatexParser)
 
 def richtext_as_tex(richtext):
     # Parse a richtext as latex
+    try:
+        html = richtext.__html__()
+    except AttributeError:
+        html = str(richtext)
     
-    return HTML_TO_LATEX_PARSER().parse(richtext.__html__())
+    return HTML_TO_LATEX_PARSER().parse(html)
 
 
 if django_tex:

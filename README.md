@@ -83,7 +83,23 @@ class SimplePdfPage(PdfViewPageMixin, Page):
 
 ### Usage of `ROUTE_CONFIG`:
 
-A HTML first page, you can access the wagtail page as you're used e.g. *127.0.0.1/mypage*.
+Default configuration:
+
+```py
+class PdfOnlyPage(PdfViewPageMixin, Page):
+
+    # PDF only
+    ROUTE_CONFIG = [
+        ("pdf", r'^$'),
+        ("html", None),
+    ]
+    
+```
+By default only the pdf-view is available, i.e. you may only view this page as pdf.
+This is useful when you just want to display a generated pdf document easily.
+
+
+A HTML first page: You can access the wagtail page as you're used e.g. *127.0.0.1/mypage*.
 The PDF version will be available under *pdf/* e.g. *127.0.0.1/mypage/pdf*
 
 ```py
@@ -91,13 +107,17 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
 
     # HTML first
     ROUTE_CONFIG = [
-        ("pdf", r'^pdf/$'),
         ("html", r'^$'),
+        ("pdf", r'^pdf/$'),
     ]
     
 ```
 
-A PDF first page, the PDF version is displayed with the regular url and
+Note that the order of *html* and *pdf* is not arbitrary:
+The entry you set first, will be displayed by default when using wagtails preview function. Depending on your case, you may want to put *pdf* in the first place, so your editors get the pdf-view by default, while html-page url stays the same for the users.
+In both cases your editors may access both views through the drop-down menu integrated in the preview button.
+
+A PDF first page: The PDF version is displayed with the regular url and
 you can access the wagtail page under */html*, e.g. *127.0.0.1/mypage/html*
 
 ```py

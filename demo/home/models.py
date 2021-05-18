@@ -74,7 +74,7 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     #def get_stylesheets(self, request):
     #    return ["css/demo_page.css"]
 
-    
+from wagtail.core.fields import RichTextField
 
 from wagtail.images.blocks import ImageChooserBlock
     
@@ -114,12 +114,17 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
         
     ], blank=True)
     
+    
+    body = RichTextField(blank=True)
+    
     content_panels = Page.content_panels + [
         FieldPanel("creation_date"),
         FieldPanel("author"),
         FieldPanel("address"),
+        FieldPanel("body"),
         StreamFieldPanel("content"),
     ]
+    
     
     
     pdf_base_template = "pdf_document_base.html"

@@ -24,6 +24,8 @@
 
 \maketitle
 
+{{ page.body|richtext }}
+
 {% for block in page.content %}
     {% if block.block_type == 'heading' %}
         \section{ {{- block.value -}} }
