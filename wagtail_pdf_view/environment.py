@@ -104,7 +104,7 @@ class SimpleHtmlToLatexParser(HTMLParser):
             
         # add support for tables
         if tag == "table":
-            self.latex.append("\\begin{table}[h]\n\\centering\\begin{tabular}{ " + self.column_format_key + " }\n\\hline\n")
+            self.latex.append("\\begin{table}[H]\n\\centering\n\\begin{tabular}{ " + self.column_format_key + " }\n\\hline\n")
         elif tag == "caption":
             self.tex_inline = "\\caption{"
         elif tag == "thead":
