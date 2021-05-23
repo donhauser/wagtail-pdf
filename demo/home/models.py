@@ -5,6 +5,7 @@ from django.db import models
 from wagtail.core.models import Page
 from wagtail.core.fields import RichTextField, StreamField
 from wagtail.core import blocks
+from wagtail.contrib.table_block.blocks import TableBlock
 
 from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel#, InlinePanel, MultiFieldPanel, FieldRowPanel
 
@@ -91,8 +92,8 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
     
     # HTML first
     ROUTE_CONFIG = [
-        ("pdf", r'^pdf/$'),
         ("html", r'^$'),
+        ("pdf", r'^pdf/$'),
     ]
     
     ## You can rename the default preview modes
@@ -110,7 +111,8 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
     content = StreamField([
         ("heading", blocks.CharBlock(form_classname="full title")),
         ("text", blocks.RichTextBlock()),
-        ("image", ImageChooserBlock())
+        ("image", ImageChooserBlock()),
+        ("table", TableBlock()),
         
     ], blank=True)
     

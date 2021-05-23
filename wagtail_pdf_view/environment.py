@@ -9,6 +9,7 @@ except ImportError:
 
 
 from wagtail.core import blocks
+from wagtail.contrib.table_block.blocks import TableBlock
 
 import re
 from html.parser import HTMLParser
@@ -23,8 +24,8 @@ class WagtailCoreExtensionLatex(WagtailCoreExtension):
         """
         Automatically translate richtext blocks into latex
         """
-        
-        if isinstance(value.block, blocks.RichTextBlock):
+
+        if isinstance(value.block, blocks.RichTextBlock) or isinstance(value.block, TableBlock):
             
             if hasattr(value, 'render_as_block'):
                 if context:
@@ -62,6 +63,11 @@ class SimpleHtmlToLatexParser(HTMLParser):
         super().__init__(*args, **kwargs)
         self.latex = []
         self.tex_inline = ''
+        # table support
+        self.table_caption = ''
+        self.column_format_key = '__column_format__'
+        self.table_column_counter = 0
+        self.table_column_counter_max = 0
     
     # Some simple HTML Tags, which have a similar representation in latex
     mapping = {
@@ -96,6 +102,39 @@ class SimpleHtmlToLatexParser(HTMLParser):
         if tag == "img":
             self.latex.append("\\wagtailimage{"+a.get("src", '')+"}{"+a.get("class", '')+"}")
             
+        # add support for tables
+        if tag == "table":
+            self.latex.append("\\begin{table}[H]\n\\centering\n\\begin{tabular}{ " + self.column_format_key + " }\n\\hline\n")
+        elif tag == "caption":
+            self.tex_inline = "\\caption{"
+        elif tag == "thead":
+            pass
+        elif tag == "tbody":
+            pass
+        elif tag == "tr":
+            pass
+        elif tag == "th":
+            if not self.table_column_counter:
+                self.latex.append("\\textbf{")
+            else:
+                self.latex.append("& \\textbf{")
+
+            # Update column counter
+            self.table_column_counter += 1
+            # Update maximum value
+            if self.table_column_counter_max < self.table_column_counter:
+                self.table_column_counter_max = self.table_column_counter
+        elif tag == "td":
+            if not self.table_column_counter:
+                pass
+            else:
+                self.latex.append("& ")
+
+            # Update column counter
+            self.table_column_counter += 1
+            # Update maximum value
+            if self.table_column_counter_max < self.table_column_counter:
+                self.table_column_counter_max = self.table_column_counter
 
     def handle_endtag(self, tag):
         
@@ -103,12 +142,46 @@ class SimpleHtmlToLatexParser(HTMLParser):
         if self.tex_inline:
             if tag == "a":
                 self.latex.append(self.tex_inline+"}\n")
-            
-            self.tex_inline = ''
+                # reset inline buffer
+                self.tex_inline = ''
         else:
             # simple mapping e.g. </b> --> }
             if tag in self.mapping:
                 self.latex.append(self.mapping[tag][1])
+
+        # add support for tables
+        if tag == "table":
+            self.latex.append("\\end{tabular}\n" + self.table_caption + "\\end{table}")
+            
+            # build column format based on number of columns
+            column_format = '|'
+            for col in range(self.table_column_counter_max):
+                column_format += 'c|'
+
+            # replace column format key
+            for idx, line in enumerate(self.latex):
+                if self.column_format_key in line:
+                    line = line.replace(self.column_format_key, column_format)
+                    break
+            self.latex[idx] = line
+                
+        elif tag == "caption":
+            self.tex_inline += "}\n"
+            self.table_caption = self.tex_inline
+            # reset inline buffer
+            self.tex_inline = ''
+        elif tag == "thead":
+            pass
+        elif tag == "tbody":
+            pass
+        elif tag == "tr":
+            self.latex.append(" \\\\ \\hline\n")
+            # reset column counter
+            self.table_column_counter = 0
+        elif tag == "th":
+            self.latex.append("} ")
+        elif tag == "td":
+            self.latex.append(" ")
 
     def handle_data(self, data):
         

@@ -30,7 +30,7 @@
     {% block document_content %}
     
         <h1>{{page.title}}</h1>
-
+        <hr>
         {% for block in page.content %}
             {% if block.block_type == 'heading' %}
                 <h2>{{ block.value }}</h2>
@@ -46,5 +46,6 @@
     {% endblock %}
     
     {% block document_footer %}
+        <hr>
         You can place your <b>Footer here</b>!
     {% endblock %}
