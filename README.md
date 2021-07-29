@@ -133,6 +133,54 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
 
 `ROUTE_CONFIG` is build on wagtails [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html), you can specify routes as you want (e.g. `("html", r'^web/$')`)
 
+#### Reversing and using URLs in templates
+
+As of version 1.4 reversing url patterns is supported.
+
+This feature is useful in cases when you are serving multiple views (i.e. html and pdf).
+
+You can access the URLs for the different views by using `routablepageurl` from the [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html) module:
+
+```html
+{% load wagtailroutablepage_tags %}
+
+<!-- HTML Page URL-->
+{% routablepageurl page "html" %}
+
+<!-- PDF Page URL-->
+{% routablepageurl page "pdf" %}
+
+
+<!-- TODO can this be removed?-->
+<!-- When looping over Page.get_children, you need to use the specific Page object -->
+{% for subpage in page.get_children %}
+    <li>{% routablepageurl subpage.specific "pdf" %}</li>
+{% endfor %}
+```
+
+In most cases you don't need the full functionality of `routablepageurl`. To make things easy you can simply access the different views by the custom URL attributes `url_pdf` and `url_html`:
+
+```html
+<!-- HTML view url -->
+{{page.url_html}}
+
+<!-- PDF view url -->
+{{page.url_pdf}}
+
+
+<!-- When looping over Page.get_children, you need to use the specific Page object -->
+{% for subpage in page.get_children %}
+    <li>{{subpage.specific.url_pdf}}</li>
+{% endfor %}
+```
+
+If you are just interested in the extention to the normal page url:
+
+```py
+# this will be 'pdf/' in HTML-first mode
+page.reverse_subpage('pdf')
+```
+
 ## Using latex
 
 When you want to use latex instead of HTML, you should be aware of the following:

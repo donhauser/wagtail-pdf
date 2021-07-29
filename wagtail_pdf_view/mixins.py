@@ -85,16 +85,46 @@ class MultipleViewPageMixin(RoutablePageMixin):
             
             cls.DEFAULT_PREVIEW_MODES = []
             
-            for key, value, *args in cls.ROUTE_CONFIG: # TODO rename route config
+            for key, value, *args in cls.ROUTE_CONFIG:
                 
                 if value:
                     cls.DEFAULT_PREVIEW_MODES.append((key, cls.get_preview_name(key)))
                     
                     serve_method = "serve_{}".format(key)
                     
+                    # Use a propper name for @route, otherwise the name will be 'inner' due to function wrapping
+                    if not args:
+                        args = [key]
+                    
                     # add the @route decorator to the serve methods
                     fn = getattr(cls, serve_method)
                     setattr(cls, serve_method, route_function(fn, value, *args))
+    
+    
+    def __init__(self, *args, **kwargs):
+        """
+        Assign a custom url attribute for each view during initialization
+        
+        For example the url for the 'pdf'-view of the Page will be `Page.url_pdf`
+        """
+        
+        super().__init__(*args, **kwargs)
+        
+        for key, value, *route_args in self.ROUTE_CONFIG:
+            
+            if not route_args:
+                route_args = [key]
+            
+            # Assign the url attribute to the matching reverse if the attribute is not set already
+            if value and not hasattr(self, "url_"+key):
+                
+                name = route_args[0]
+                
+                url = self.url
+                if not url.endswith('/'):
+                    url += '/'
+                
+                setattr(self, "url_"+key, url+self.reverse_subpage(name))
     
     @classmethod
     def get_preview_name(cls, key):
