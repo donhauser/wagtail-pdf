@@ -13,25 +13,31 @@ from .utils import route_function
 
 
 from django.utils.cache import patch_cache_control
+from django.utils.text import slugify
 
 
 from wagtail.core.models import Page
 
+from .views import AdminViewMixin
+
 # set default pdf provider (weasyprint/django-tex)
 try:
-    from .views import WagtailWeasyView
+    from .views import WagtailWeasyView, WagtailWeasyAdminView
     DEFAULT_PDF_VIEW_PROVIDER = WagtailWeasyView
+    DEFAULT_PDF_ADMIN_VIEW_PROVIDER = WagtailWeasyAdminView
     
 except ImportError:
     try:
-        from .views import WagtailTexView
+        from .views import WagtailTexView, WagtailTexAdminView
         DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView
+        DEFAULT_PDF_ADMIN_VIEW_PROVIDER = WagtailTexAdminView
         
     except ImportError:
         print("Warning: DEFAULT_PDF_VIEW_PROVIDER unspecified." + 
               "Make sure you have either django-weasyprint or django-tex installed, or provide a default.")
         
         DEFAULT_PDF_VIEW_PROVIDER = None
+        DEFAULT_PDF_ADMIN_VIEW_PROVIDER = None
 
 
 class MultipleViewPageMixin(RoutablePageMixin):
@@ -178,19 +184,40 @@ class MultipleViewPageMixin(RoutablePageMixin):
 
 class PdfModelMixin:
     TEMPLATE_ATTRIBUTE = 'template_name'
+    ADMIN_TEMPLATE_ATTRIBUTE = 'admin_template_name'
     
     def get_context(self, *args, **kwargs):
         return {}
     
     # TODO context=... for block
-    def get_template(self, request, *args, extension=None, **kwargs):
+    def get_template(self, request, *args, extension=None, view_provider=None, **kwargs):
+        
+        if isinstance(view_provider, AdminViewMixin):
+            template_attr = self.ADMIN_TEMPLATE_ATTRIBUTE
+        else:
+            template_attr = self.TEMPLATE_ATTRIBUTE
         
         try:
-            return getattr(self, self.TEMPLATE_ATTRIBUTE)
+            return getattr(self, template_attr)
         except AttributeError:
             raise AttributeError("Template attribute not found for model {}. "
-                                 "Try to add {}='path/to/your/template_file' to {}".format(self._meta.model_name, self.TEMPLATE_ATTRIBUTE, self._meta.model_name)
+                                 "Try to add {}='path/to/your/template_file' to {}".format(self._meta.model_name, template_attr, self._meta.model_name)
                                  )
+    
+    
+    # you can implement Page.attachment to control the Content-Disposition attachment
+    ATTACHMENT_VARIABLE = "attachment"
+    
+    
+    def get_pdf_filename(self, request, **kwargs):
+        """
+        Get the filename for the pdf file
+        
+        This simply extends the model name with '.pdf'
+        """
+        
+        return self._meta.model_name + '.pdf'
+    
     
 
 class PdfViewPageMixin(MultipleViewPageMixin):
@@ -232,6 +259,9 @@ class PdfViewPageMixin(MultipleViewPageMixin):
     
     PDF_VIEW_PROVIDER = getattr(settings, "DEFAULT_PDF_VIEW_PROVIDER", DEFAULT_PDF_VIEW_PROVIDER)
     
+    # Slugifies the document title if enabled
+    pdf_slugify_document_name = True
+    
     
     def get_pdf_view(self, **kwargs):
         """
@@ -247,7 +277,12 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         This simply extends the page title with '.pdf'
         """
         
-        return self.title + '.pdf'
+        if self.pdf_slugify_document_name:
+            title = slugify(self.title)
+        else:
+            title = self.title
+        
+        return title + '.pdf'
     
     
     def get_template(self, request, extension=None, **kwargs):
@@ -292,11 +327,6 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         
         view = self.get_pdf_view(**kwargs)
         response = view(request, object=self, mode="pdf", **kwargs)
-        
-        response['Content-Disposition'] = '{}filename="{}"'.format(
-            "attachment;" if getattr(self, self.ATTACHMENT_VARIABLE, False) else '',
-            self.get_pdf_filename(request, **kwargs)
-        )
         
         # TODO remove
         add_never_cache_headers(response)

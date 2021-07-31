@@ -1,9 +1,10 @@
 # wagtail-pdf-view
 Create PDF response views for Wagtail pages.
 
-The goal of this extension is to provide a flexible but easy to use way to render Wagtail pages as PDF.
+The goal of this extension is to provide a flexible but easy to use way to render Wagtail pages and Django models as PDF.
 With this extension you can utilize all the benefits from the wagtail page system (previews, drafts, history) as well as the power of
 *StreamField* and *RichText* for your generated PDF document.
+Models may be easily rendered as PDF and will be accessible either through the admin interface or through a public url.
 
 Currently [weasyprint](https://github.com/Kozea/WeasyPrint) (for HTML to PDF conversion) and latex is supported.
 If you are undecided which one to use, [weasyprint](https://github.com/Kozea/WeasyPrint) is recommended.
@@ -41,6 +42,7 @@ For [django-tex](https://github.com/weinbusch/django-tex) you should set `DEFAUL
 ## Usage
 
 All you need to do to render your Wagtail page as PDF, is to inherit from `PdfModelMixin`.
+If you want to render a model instead, read the section **ModelAdmin** below.
 
 **If you want to use latex, read the latex section below.**
 
@@ -135,7 +137,7 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
 
 #### Reversing and using URLs in templates
 
-As of version 1.4 reversing url patterns is supported.
+As of version 0.2 reversing url patterns is supported.
 
 This feature is useful in cases when you are serving multiple views (i.e. html and pdf).
 
@@ -151,7 +153,6 @@ You can access the URLs for the different views by using `routablepageurl` from 
 {% routablepageurl page "pdf" %}
 
 
-<!-- TODO can this be removed?-->
 <!-- When looping over Page.get_children, you need to use the specific Page object -->
 {% for subpage in page.get_children %}
     <li>{% routablepageurl subpage.specific "pdf" %}</li>
@@ -180,6 +181,138 @@ If you are just interested in the extention to the normal page url:
 # this will be 'pdf/' in HTML-first mode
 page.reverse_subpage('pdf')
 ```
+
+## ModelAdmin
+
+Version 0.2 introduces rendering for models via `ModelAdmin`.
+
+The model needs to inherit from `PdfModelMixin` to enable rendering on the models side.
+To make incorporating PDF-views as simple as possible this module offers two `ModelAdmin` mixins
+`ModelAdminPdfViewMixin` and `ModelAdminPdfAdminViewMixin`.
+If you are not using `ModelAdmin` you may add a view for the model manually.
+
+
+### Hooking in the URLs
+
+If you want to access PDFs from outside of the admin area, you need to hook in `wagtail_pdf_urls` into your projects `urls.py`.
+If you are unsure whether you need this, it is recommended use the hook below:
+
+```py
+# urls.py
+
+from wagtail_pdf_view import urls as wagtail_pdf_urls
+
+urlpatterns = urlpatterns + [
+    # hook in the 'live'-view PDFs under "pdf/"
+    path("pdf/", include(wagtail_pdf_urls)),
+    ...
+    # IMPORTANT: This must be below the "pdf/" include
+    path("", include(wagtail_urls)),
+    ...
+]
+```
+
+### Simple Example
+
+Inheriting from `PdfModelMixin`
+
+```py
+# models.py
+
+from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
+
+class YourPdfModel(PdfModelMixin, models.Model):
+
+    # the admin view uses a different template attribute to
+    # prevent you from publishing sensitive content by accident
+    
+    # template for non-admin view
+    template_name = "path/to/your_model.html"
+    # template for admin 
+    admin_template_name = "path/to/your_model_admin.html"
+```
+
+By inheriting from `ModelAdminPdfViewMixin` or `ModelAdminPdfAdminViewMixin` you
+automatically make the model accessible through a live url or through the admin panel respectively.
+
+This separation should make it easy to choose a view to according to your security needs:
+- `ModelAdminPdfViewMixin` is suited for non-sensitive public models.
+- `ModelAdminPdfAdminViewMixin` makes the view only accessible to users with `view` permissions on the model.
+
+```py
+# wagtail_hooks.py
+
+from wagtail.contrib.modeladmin.options import ModelAdmin, modeladmin_register
+
+from .models import YourPdfModel
+
+
+# OPTION 1)
+# Creating a public view model (accessible for everybody through a url)
+# MAKE SURE YOU HOOKED IN THE URLs PROPERLY
+
+from wagtail_pdf_view.modeladmin.mixins import ModelAdminPdfViewMixin
+
+@modeladmin_register
+class YourPdfModelWagtailAdmin(ModelAdminPdfViewMixin, ModelAdmin):
+    model = YourPdfModel
+
+    
+# OPTION 2)
+# Creating admin-restricted view model
+
+from wagtail_pdf_view.modeladmin.mixins import ModelAdminPdfAdminViewMixin
+
+@modeladmin_register
+class YourPdfModelWagtailAdmin(ModelAdminPdfAdminViewMixin, ModelAdmin):
+    model = YourPdfModel
+    
+```
+
+### Model URL configuration without ModelAdmin
+
+This is an example how you can hook in the models PDF-view manually (without using `ModelAdmin`).
+
+```py
+# urls.py
+
+# This will be either WagtailWeasyView or WagtailTexView depending on your installation
+from wagtail_pdf_view.mixins import DEFAULT_PDF_VIEW_PROVIDER
+
+from .models import YourPdfModel
+
+urlpatterns = [
+    ...
+    # URL path for the DetailView with primary key pk
+    re_path(r'^some/path/(?P<pk>\d+)/$',  DEFAULT_PDF_VIEW_PROVIDER.as_view(model=YourPdfModel)),
+    ...
+]
+```
+
+### Using a custom ButtonHelper or PermissionHelper
+
+This library implements an easier extendable `ButtonHelper`.
+
+If you are using a custom `ButtonHelper`, you should inherit from `ExtendableButtonHelperMixin` or `PdfViewButtonHelper`,
+otherwise you will not see a button for the PDF-view of the object in `ModelAdmin`s `ListView`.
+
+Example:
+```py
+class MyCustomButtonHelper(PdfViewButtonHelper):
+    
+    # simplified button registration
+    # (action, properties)
+    custom_object_buttons = [
+        ("custom", {"label": 'Custom Label'}),
+        ("some_action", {"label": 'Another Action'}),
+    ]
+```
+
+Note that `custom_object_buttons` is defaulted with the actions *pdf* and *live* in `PdfViewButtonHelper`.
+
+
+If you are setting a custom `PermissionHelper`, you need to inherit from `CustomActionPermissionHelperMixin`.
+
 
 ## Using latex
 

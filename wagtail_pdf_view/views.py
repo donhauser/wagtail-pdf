@@ -10,6 +10,12 @@ from django.conf import settings
 
 from django.core.exceptions import SuspiciousFileOperation
 
+from django.contrib.auth.mixins import PermissionRequiredMixin
+
+from wagtail.admin.views.generic.permissions import PermissionCheckedMixin
+from wagtail.core.permission_policies import ModelPermissionPolicy
+
+
 
 class ConcreteSingleObjectMixin(SingleObjectMixin):
     """
@@ -30,6 +36,7 @@ class ConcreteSingleObjectMixin(SingleObjectMixin):
 
     def get_object(self):
         return self.object or super().get_object()
+    
 
 class WagtailAdapterMixin(ContextMixin):
     """
@@ -41,6 +48,11 @@ class WagtailAdapterMixin(ContextMixin):
     """
     
     def get_template_names(self):
+        
+        # possibility to override template
+        if self.template_name:
+            return self.template_name
+        
         if hasattr(self.object, "get_template"):
             return self.object.get_template(self.request, view_provider=self)
         
@@ -52,6 +64,46 @@ class WagtailAdapterMixin(ContextMixin):
         context.update(super().get_context_data(**kwargs))
         return context
     
+    
+class PDFDetailView(BaseDetailView):
+    
+    def post_process_responce(self, request, response, **kwargs):
+        
+        response['Content-Disposition'] = '{}filename="{}"'.format(
+            "attachment;" if getattr(self.object, self.object.ATTACHMENT_VARIABLE, False) else '',
+            self.object.get_pdf_filename(request, **kwargs)
+        )
+        
+        return response
+    
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        kwargs["object"] = self.object
+        
+        # Difference to BaseDetailView: Also pass kwargs
+        context = self.get_context_data(**kwargs)
+        
+        response = self.render_to_response(context)
+        
+        return self.post_process_responce(request, response, **kwargs)
+    
+    # support for post (e.g. for filling forms)
+    def post(self, request, *args, **kwargs):
+        return self.get(self, request, *args, **kwargs)
+
+
+class AdminViewMixin(PermissionCheckedMixin):
+    """
+    An adminpanel only view
+    """
+    
+    @property
+    def permission_policy(self):
+        return ModelPermissionPolicy(self.model)
+    
+    permission_required = 'view'
+
 
 try:
     import django_tex
@@ -84,6 +136,11 @@ if django_tex:
         
         
         def get_template_names(self):
+            
+            # possibility to override template
+            if self.template_name:
+                return self.template_name
+            
             if hasattr(self.object, "get_template"):
                 return self.object.get_template(self.request, view_provider=self, extension="tex")
             
@@ -91,7 +148,10 @@ if django_tex:
             return super().get_template_names()
 
 
-    class WagtailTexView(WagtailTexTemplateMixin, BaseDetailView):
+    class WagtailTexView(WagtailTexTemplateMixin, PDFDetailView):
+        pass
+
+    class WagtailTexAdminView(AdminViewMixin, WagtailTexView):
         pass
 
 
@@ -180,19 +240,10 @@ if django_weasyprint:
             return stylesheets
 
 
-    class WagtailWeasyView(WagtailWeasyTemplateMixin, BaseDetailView):
-        def get(self, request, *args, **kwargs):
-            self.object = self.get_object()
-            
-            kwargs["object"] = self.object
-            
-            # Difference to BaseDetailView: Also pass kwargs
-            context = self.get_context_data(**kwargs)
-            
-            return self.render_to_response(context)
+    class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
+        pass
         
-        # support for post (e.g. for filling forms)
-        def post(self, request, *args, **kwargs):
-            return self.get(self, request, *args, **kwargs)
-
  
+    class WagtailWeasyAdminView(AdminViewMixin, WagtailWeasyView):
+        pass
+
