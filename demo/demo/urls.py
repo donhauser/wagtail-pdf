@@ -13,10 +13,7 @@ from django.urls import re_path
 
 from home import models
 
-from django.views.static import serve
-
-# enable this to directly use the views
-#from wagtail_pdf_view.views import WagtailTexView, WagtailWeasyView
+#from django.views.static import serve
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),
@@ -25,11 +22,9 @@ urlpatterns = [
     path('documents/', include(wagtaildocs_urls)),
 
     path('search/', search_views.search, name='search'),
-    #re_path(r'^test/(?P<pk>\d+)/(?P<var>\w*/?)$', WagtailTexView.as_view(model=models.SimplePdfPage), name='search'),
-    #re_path(r'^test2/(?P<pk>\d+)/$',  WagtailWeasyView.as_view(model=models.DemoModel)),
 
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    #re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    #re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
 ]
 
 
@@ -41,7 +36,11 @@ if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+
+from wagtail_pdf_view import urls as wagtail_pdf_urls
+
 urlpatterns = urlpatterns + [
+    path("pdf/", include(wagtail_pdf_urls)),
     # For anything not caught by a more specific rule above, hand over to
     # Wagtail's page serving mechanism. This should be the last pattern in
     # the list:

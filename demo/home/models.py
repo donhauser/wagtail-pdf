@@ -11,14 +11,13 @@ from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel#, InlinePan
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 
-# TODO reenable
-#from wagtail_pdf_view.views import WagtailTexView
-
 
 from django.conf import settings
 
 
 class DemoModel(PdfModelMixin, models.Model):
+    #attachment = True
+    
     creation_date = models.DateField(default=datetime.now)
     
     author = models.CharField(max_length=200)
@@ -35,16 +34,22 @@ class DemoModel(PdfModelMixin, models.Model):
     ]
     
     template_name = "home/demo_model.html"
+    admin_template_name = "home/demo_model_admin.html"
     
     # Alternative: Override the get_template() method
     # def get_template(self, request, *args, extension=None, **kwargs):
     #     return "home/demo_model.html"
     
+    class Meta:
+        permissions = (
+            # IT IS IMPORTANT TO APPEND '_modelname'
+            ('can_view_pdf'+'_demomodel', 'can view the demo model pdf'),
+        )
 
 
 class SimplePdfPage(PdfViewPageMixin, Page):
     ## Set the browsers attachment handling
-    # attachment = True
+    #attachment = True
     
     ## render with LaTeX instead
     # PDF_VIEW_PROVIDER = WagtailTexView
@@ -78,8 +83,10 @@ class SimplePdfPage(PdfViewPageMixin, Page):
 from wagtail.core.fields import RichTextField
 
 from wagtail.images.blocks import ImageChooserBlock
+
     
 class HtmlAndPdfPage(PdfViewPageMixin, Page):
+    
     
     # Set the browsers attachment handling
     attachment = models.BooleanField(help_text="Download the .pdf file instead of displaying it in the browser", default=False)
@@ -128,7 +135,6 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
     ]
     
     
-    
     pdf_base_template = "pdf_document_base.html"
     
     def get_stylesheets(self, request, mode=None, **kwargs):
@@ -145,3 +151,6 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
         
         return context
     
+
+class Homepage(Page):
+    pass

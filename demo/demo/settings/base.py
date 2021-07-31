@@ -35,6 +35,9 @@ INSTALLED_APPS = [
     'home',
     'search',
     
+    'report', # Weasyprint demos
+    'invoice',
+    
     'wagtail_pdf_view',
     
     'wagtail.contrib.forms',

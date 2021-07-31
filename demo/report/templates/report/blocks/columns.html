@@ -1,0 +1,13 @@
+{% load wagtailimages_tags %}
+{% load wagtailcore_tags %}
+
+
+<h2 id="{{ self.heading|slugify }}">{{ self.heading }}</h2>
+
+{% if self.sub_heading %}
+    <h3>{{ self.sub_heading }}</h3>
+{% endif %}
+
+<section>
+    {{ self.text|richtext }}
+</section>

@@ -1,0 +1,16 @@
+{% load wagtailimages_tags %}
+{% load wagtailcore_tags %}
+
+
+<h2 id="{{ self.heading|slugify }}">{{ self.heading }}</h2>
+
+{% if self.sub_heading %}
+    <h3>{{ self.sub_heading }}</h3>
+{% endif %}
+
+{% for entry in self.entries %}
+      <section id="{{entry.kind}}">
+        <h4>{{entry.heading}}</h4>
+        {{entry.text}}
+      </section>
+{% endfor %}

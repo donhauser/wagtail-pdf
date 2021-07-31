@@ -1,0 +1,46 @@
+{% load static %}
+
+
+{% load wagtailcore_tags %}
+<!DOCTYPE html>
+<html lang="">
+    <head>
+        <meta charset="utf-8">
+        <title>{{page.title}}</title>
+        
+        <style>
+            body {
+                color: #222;
+            }
+        
+            h1 {
+                background-color: #aaf;
+                width: 100%;
+                padding: 0.2em 0.5em;
+            }
+            
+            p {
+                border-left: 0.5em solid #aaf;
+                padding-left: 1em;
+            }
+        </style>
+    </head>
+    <body>
+    
+        <h1>This is accessed through the admin panel</h1>
+        
+        {% for block in object.content %}
+            {% if block.block_type == 'heading' %}
+                <h2>{{ block.value }}</h2>
+            {% else %}
+                {% include_block block %}
+            {% endif %}
+        {% endfor %}
+        
+        
+        A static demo image:
+        
+        <img src="{% static "Lenna.png"%}"/>
+
+    </body>
+</html>
