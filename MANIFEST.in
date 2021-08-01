@@ -1,1 +1,2 @@
 include wagtail_pdf_view/templates/* 
+include wagtail_pdf_view/modeladmin/* 

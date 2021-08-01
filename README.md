@@ -9,6 +9,8 @@ Models may be easily rendered as PDF and will be accessible either through the a
 Currently [weasyprint](https://github.com/Kozea/WeasyPrint) (for HTML to PDF conversion) and latex is supported.
 If you are undecided which one to use, [weasyprint](https://github.com/Kozea/WeasyPrint) is recommended.
 
+![Alt Text](clip_wagtail_pdf_view_low.gif)
+
 ## Installing
 
 Install the latest version from pypi:
