@@ -1,15 +1,15 @@
 # wagtail-pdf-view
-Create PDF response views for Wagtail pages.
+Render Wagtail pages and models as PDF document using Weasyprint or LaTeX.
 
 The goal of this extension is to provide a flexible but easy to use way to render Wagtail pages and Django models as PDF.
 With this extension you can utilize all the benefits from the wagtail page system (previews, drafts, history) as well as the power of
 *StreamField* and *RichText* for your generated PDF document.
-Models may be easily rendered as PDF and will be accessible either through the admin interface or through a public url.
+Models may be easily rendered as PDF and will be accessible either through the admin interface or through a public URL.
 
 Currently [weasyprint](https://github.com/Kozea/WeasyPrint) (for HTML to PDF conversion) and latex is supported.
 If you are undecided which one to use, [weasyprint](https://github.com/Kozea/WeasyPrint) is recommended.
 
-![Alt Text](clip_wagtail_pdf_view_low.gif)
+![Short Demo Clip](clip_wagtail_pdf_view_low.gif)
 
 ## Installing
 
