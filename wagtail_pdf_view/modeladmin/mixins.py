@@ -187,6 +187,7 @@ class ModelAdminPdfViewMixin:
 class ModelAdminPdfAdminViewMixin:
     
     button_helper_class = PdfViewButtonHelper
+    permission_helper_class = CustomActionPermissionHelper
     
     pdf_admin_view_class = getattr(settings, "DEFAULT_PDF_ADMIN_VIEW_PROVIDER", DEFAULT_PDF_ADMIN_VIEW_PROVIDER)
 

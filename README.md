@@ -216,7 +216,7 @@ urlpatterns = urlpatterns + [
 
 ### Simple Example
 
-Inheriting from `PdfModelMixin`
+Your model needs to inherit from `PdfModelMixin`:
 
 ```py
 # models.py
@@ -233,6 +233,8 @@ class YourPdfModel(PdfModelMixin, models.Model):
     # template for admin 
     admin_template_name = "path/to/your_model_admin.html"
 ```
+
+Unlike for PDF-Pages where everything is done in the Page-model, the hooks for `ModelAdmin` need to be extended:
 
 By inheriting from `ModelAdminPdfViewMixin` or `ModelAdminPdfAdminViewMixin` you
 automatically make the model accessible through a live url or through the admin panel respectively.

@@ -187,12 +187,16 @@ if django_weasyprint:
             return self._request.build_absolute_uri('/')
 
 
-        def get_css(self, base_url, url_fetcher):
+        def get_css(self, base_url, url_fetcher, font_config, *args, **kwargs):
             """
             Get the css for weasyprint
             
             All paths are collected from _stylesheets and are tried to be located
             with djangos static loaders.
+            
+            This method is an override of django_weasyprint.views.WeasyTemplateResponse.get_css(),
+            which also supports static file paths. If the relative import fails, django automatically tries searches
+            for the correct static file by using django.contrib.staticfiles.finders.find(value) as fallback.
             """
             
             tmp = []
@@ -203,6 +207,7 @@ if django_weasyprint:
                         value,
                         base_url=base_url,
                         url_fetcher=url_fetcher,
+                        font_config=font_config,
                     )
                 except FileNotFoundError as e:
                     try:
@@ -217,6 +222,7 @@ if django_weasyprint:
                             path,
                             base_url=base_url,
                             url_fetcher=url_fetcher,
+                            font_config=font_config,
                         )
                     else:
                         raise e

@@ -127,10 +127,12 @@ class MultipleViewPageMixin(RoutablePageMixin):
                 name = route_args[0]
                 
                 url = self.url
-                if not url.endswith('/'):
-                    url += '/'
                 
-                setattr(self, "url_"+key, url+self.reverse_subpage(name))
+                if url is not None:
+                    if not url.endswith('/'):
+                        url += '/'
+                    
+                    setattr(self, "url_"+key, url+self.reverse_subpage(name))
     
     @classmethod
     def get_preview_name(cls, key):
