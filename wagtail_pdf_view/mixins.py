@@ -4,6 +4,7 @@ from wagtail.contrib.routable_page.models import RoutablePageMixin, route
 
 from django.conf import settings
 
+from django.shortcuts import redirect
 
 from django.utils.translation import gettext as _
 
@@ -11,14 +12,15 @@ from django.utils.cache import add_never_cache_headers
 
 from .utils import route_function
 
-
 from django.utils.cache import patch_cache_control
 from django.utils.text import slugify
 
+import urllib.parse
 
 from wagtail.core.models import Page
 
 from .views import AdminViewMixin
+
 
 # set default pdf provider (weasyprint/django-tex)
 try:
@@ -38,6 +40,24 @@ except ImportError:
         
         DEFAULT_PDF_VIEW_PROVIDER = None
         DEFAULT_PDF_ADMIN_VIEW_PROVIDER = None
+
+
+def redirect_request_to_pdf_viewer(original_request):
+    """
+    Redirect the original request to a custom pdf viewer frontend
+    
+    This is used to hook in pdf.js from server-side in the preview to enable propper iframe interaction.
+    Using the browsers pdf viewer within iframes instead may break the preview (e.g. firefox wagtail >4.0),
+    as the pdf viewer is hosted locally and thus prevents accessing scroll properites (CORS prohibited).
+    """
+    
+    query = original_request.GET.copy()
+    query.pop('in_preview_panel')
+    
+    file = f"{original_request.path_info}?{query.urlencode()}"
+    url = "/static/pdf.js/web/viewer.html?file=" + urllib.parse.quote(file)
+
+    return redirect(url)
 
 
 class MultipleViewPageMixin(RoutablePageMixin):
@@ -309,13 +329,17 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         This is essentially a fix for weasyprint in the wagtail admin preview.
         The original request is still accessible as request.orginal_request e.g. to figure out
         the server port (which is not possible otherwise, as wagtail is creating a new 'fake'
-        request with port 80)
+        request with port 80) or to check whether "in_preview_panel" is set
         """
         
         if not extra_request_attrs:
             extra_request_attrs = {}
             
         extra_request_attrs["original_request"] = original_request
+        
+        if original_request and original_request.GET.get('in_preview_panel') and preview_mode=='pdf':
+            # Wagtail >4.0 fix for e.g. firefox (internal pdf viewer prohibits CORS)
+            return redirect_request_to_pdf_viewer(original_request)
         
         return super().make_preview_request(original_request=original_request, preview_mode=preview_mode, extra_request_attrs=extra_request_attrs)
     
