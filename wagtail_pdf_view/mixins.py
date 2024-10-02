@@ -162,7 +162,7 @@ class MultipleViewPageMixin(RoutablePageMixin):
         e.g. "pdf" will become "pdf preview"
         """
         
-        return _(str(key)+" preview")
+        return _(str(key).upper())
     
     @property
     def preview_modes(self):
