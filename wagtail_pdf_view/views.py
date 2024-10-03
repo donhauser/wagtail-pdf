@@ -148,14 +148,14 @@ def get_pdf_view(name):
     try: 
         return PDF_VIEWS[name]
     except KeyError:
-        raise f"No such pdf view '{name}', did you forget to use @register_pdf_view('{name}') ?"
+        raise ValueError(f"No such pdf view '{name}', did you forget to use @register_pdf_view('{name}') ?")
     
     
 def get_pdf_admin_view(name):
     try: 
         return PDF_ADMIN_VIEWS[name]
     except KeyError:
-        raise f"No such pdf view '{name}', did you forget to use @register_pdf_admin_view('{name}') ?"
+        raise ValueError(f"No such pdf view '{name}', did you forget to use @register_pdf_admin_view('{name}') ?")
 
 
 try:
