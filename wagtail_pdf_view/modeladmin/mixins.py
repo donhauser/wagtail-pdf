@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.urls import re_path
 
-from wagtail.core import hooks
+from wagtail import hooks
 
 from wagtail.contrib.modeladmin.helpers import ButtonHelper, PermissionHelper, AdminURLHelper
 from django.urls.exceptions import NoReverseMatch

@@ -13,7 +13,7 @@ from django.core.exceptions import SuspiciousFileOperation
 from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from wagtail.admin.views.generic.permissions import PermissionCheckedMixin
-from wagtail.core.permission_policies import ModelPermissionPolicy
+from wagtail.permission_policies import ModelPermissionPolicy
     
 import weasyprint
 

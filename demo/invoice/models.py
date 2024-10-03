@@ -2,9 +2,9 @@ from datetime import datetime
 
 from django.db import models
 
-from wagtail.core.models import Page
-from wagtail.core.fields import RichTextField
-from wagtail.core import blocks
+from wagtail.models import Page
+from wagtail.fields import RichTextField
+from wagtail import blocks
 from wagtail.contrib.table_block.blocks import TableBlock
 
 from modelcluster.fields import ParentalKey

@@ -1,4 +1,4 @@
-from wagtail.core.jinja2tags import WagtailCoreExtension
+from wagtail.jinja2tags import WagtailCoreExtension
 
 import jinja2
 
@@ -8,7 +8,7 @@ except ImportError:
     django_tex = None
 
 
-from wagtail.core import blocks
+from wagtail import blocks
 from wagtail.contrib.table_block.blocks import TableBlock
 
 import re

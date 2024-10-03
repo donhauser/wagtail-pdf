@@ -2,10 +2,12 @@ from datetime import datetime
 
 from django.db import models
 
-from wagtail.core.models import Page
-from wagtail.core.fields import RichTextField, StreamField
-from wagtail.core import blocks
+from wagtail import blocks
+
+from wagtail.models import Page
+from wagtail.fields import RichTextField, StreamField
 from wagtail.contrib.table_block.blocks import TableBlock
+from wagtail.images.blocks import ImageChooserBlock
 
 from wagtail.admin.edit_handlers import FieldPanel
 
@@ -92,9 +94,6 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     #def get_stylesheets(self, request):
     #    return ["css/demo_page.css"]
 
-from wagtail.core.fields import RichTextField
-
-from wagtail.images.blocks import ImageChooserBlock
 
     
 class HtmlAndPdfPage(PdfViewPageMixin, Page):

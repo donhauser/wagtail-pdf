@@ -1,6 +1,6 @@
 
 from django.urls import include, path, re_path
-from wagtail.core import hooks
+from wagtail import hooks
 from wagtail.utils.urlpatterns import decorate_urlpatterns
 
 urlpatterns = [
