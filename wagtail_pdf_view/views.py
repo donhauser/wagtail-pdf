@@ -135,6 +135,11 @@ if django_tex:
         response_class = TexTemplateResponse
         
         
+        # currently unsupported, as django-tex uses settings.LATEX_INTERPRETER_OPTIONS
+        pdf_options = {}
+        preview_panel_pdf_options = {}
+        
+        
         def get_template_names(self):
             
             # possibility to override template
@@ -165,8 +170,23 @@ if django_weasyprint:
 
     import weasyprint
     from django_weasyprint.views import WeasyTemplateResponseMixin, WeasyTemplateResponse
+    
+    
+    """
+    The default compiler options for weasyprint can be changed in the settings    
+    """
+    WAGTAIL_DEFAULT_PDF_OPTIONS = getattr(settings, 'WAGTAIL_DEFAULT_PDF_OPTIONS', {
+        'pdf_forms': True
+    })
+    
+    WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS', {
+        'pdf_forms': False,
+        'dpi': 50,
+        'jpeg_quality': 30
+    })
+    
 
-    class CustomWeasyTemplateResponse(WeasyTemplateResponse):
+    class WagtailWeasyTemplateResponse(WeasyTemplateResponse):    
         
         def get_base_url(self):
             """
@@ -234,7 +254,10 @@ if django_weasyprint:
 
 
     class WagtailWeasyTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, WeasyTemplateResponseMixin):
-        response_class = CustomWeasyTemplateResponse
+        response_class = WagtailWeasyTemplateResponse
+        
+        pdf_options = WAGTAIL_DEFAULT_PDF_OPTIONS
+        preview_panel_pdf_options = WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS
         
         def get_pdf_stylesheets(self):
             # try to call get_stylesheets, otherwise get stylesheet attribute

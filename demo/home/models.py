@@ -18,6 +18,16 @@ from django.conf import settings
 class DemoModel(PdfModelMixin, models.Model):
     #attachment = True
     
+    # use weasyprint compiler options to enable forms for the live/user view
+    pdf_options = {
+        'pdf_forms': True
+    }
+    
+    #  use weasyprint compiler options to disable forms in the admin panel
+    admin_pdf_options = {
+        'pdf_forms': False
+    }
+    
     creation_date = models.DateField(default=datetime.now)
     
     author = models.CharField(max_length=200)
@@ -50,6 +60,8 @@ class DemoModel(PdfModelMixin, models.Model):
 class SimplePdfPage(PdfViewPageMixin, Page):
     ## Set the browsers attachment handling
     #attachment = True
+    
+    #pdf_options = {'dpi': 20}
     
     ## render with LaTeX instead
     # PDF_VIEW_PROVIDER = WagtailTexView

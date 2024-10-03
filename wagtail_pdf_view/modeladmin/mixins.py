@@ -137,6 +137,13 @@ class ModelAdminPdfViewMixin:
     pdf_view_class = getattr(settings, "DEFAULT_PDF_VIEW_PROVIDER", DEFAULT_PDF_VIEW_PROVIDER)
 
 
+    @property
+    def pdf_options(self):
+        """
+        Possibility to customize the pdf rendering options of the model
+        """
+        return {}
+
     def register_with_wagtail(self):
         """
         Hook the models live site pdf-views into wagtail
@@ -169,7 +176,9 @@ class ModelAdminPdfViewMixin:
         
         view_class = self.pdf_view_class
         
-        return view_class.as_view(**kwargs)(request, pk=instance_pk)
+        pdf_options = {**self.pdf_options, **getattr(self.model, 'pdf_options', {})}
+        
+        return view_class.as_view(**kwargs, pdf_options=pdf_options)(request, pk=instance_pk)
     
     
     def get_site_urls_for_registration(self):
@@ -192,6 +201,13 @@ class ModelAdminPdfAdminViewMixin:
     pdf_admin_view_class = getattr(settings, "DEFAULT_PDF_ADMIN_VIEW_PROVIDER", DEFAULT_PDF_ADMIN_VIEW_PROVIDER)
 
 
+    @property
+    def pdf_options(self):
+        """
+        Possibility to customize the pdf rendering options of the model
+        """
+        return {}
+
     def pdf_admin_view(self, request, instance_pk, **kwargs):
         """
         Serve an admin pdf view for a given instance
@@ -206,7 +222,10 @@ class ModelAdminPdfAdminViewMixin:
         
         view_class = self.pdf_admin_view_class
         
-        return view_class.as_view(**kwargs)(request, pk=instance_pk, model_admin=self)
+        pdf_options = {**self.pdf_options, **getattr(self.model, 'admin_pdf_options', {})}
+        
+        return view_class.as_view(**kwargs, pdf_options=pdf_options)(request, pk=instance_pk, model_admin=self)
+    
     
     def get_admin_urls_for_registration(self):
         """

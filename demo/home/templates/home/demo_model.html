@@ -35,10 +35,15 @@
             {% endif %}
         {% endfor %}
         
+        <form>
+        <label for="question">What is your name?</label> <input style="width:50%" name="question"/>
+        <br/>
+        <label for="check">Checkbox</label> <input type="checkbox" name="check">
+        </form>
         
         A static demo image:
-        
-        <img src="{% static "Lenna.png"%}"/>
+        <br>
+        <img style="width:50%;" src="{% static "butterfly.jpg"%}"/>
 
     </body>
 </html>

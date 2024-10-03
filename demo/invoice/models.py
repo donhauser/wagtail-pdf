@@ -20,6 +20,8 @@ import uuid
 class Invoice(PdfModelMixin, ClusterableModel):
     #attachment = True
     
+    #pdf_options = {'dpi': 200}
+    
     # uuid is used for URL anonymization 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     

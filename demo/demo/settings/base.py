@@ -194,3 +194,19 @@ WAGTAIL_SITE_NAME = "demo"
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
 BASE_URL = 'http://example.com'
+
+# disable the usage of pdf.js in the preview panel (this can cause CORS issues e.g. on firefox)
+#WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = ""
+# use a different pdf viewer for the preview
+#WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = "/static/path/to/custom/viewer.html?file="
+
+# set default compiler options for weasyprint (e.g. to disable `pdf_forms` or to set the embedded image `dpi`)
+#WAGTAIL_DEFAULT_PDF_OPTIONS = {'pdf_forms': False}
+#WAGTAIL_DEFAULT_PDF_OPTIONS = {'dpi': 50}
+
+# set the compiler options for weasyprint when rendering inside the preview panel
+#WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {'pdf_forms': True}
+#WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {}
+
+# Customization of the 'live' path of models with pdf rendering
+#WAGTAIL_PDF_MODEL_URL_PATH = 'files/generated/'

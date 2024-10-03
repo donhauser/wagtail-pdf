@@ -7,7 +7,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setuptools.setup(
     name='wagtail-pdf-view',
-    version='0.2.1',
+    version='0.3.0',
     description='PDF rendering views for the Wagtail CMS',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -17,7 +17,7 @@ setuptools.setup(
     packages=['wagtail_pdf_view'],
     package_data={'': ['LICENSE', 'templates/*']},
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=["wagtail"],
     extras_require = {
         'weasyprint':["django-weasyprint"],

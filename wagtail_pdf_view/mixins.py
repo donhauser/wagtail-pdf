@@ -41,6 +41,9 @@ except ImportError:
         DEFAULT_PDF_VIEW_PROVIDER = None
         DEFAULT_PDF_ADMIN_VIEW_PROVIDER = None
 
+WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL = settings.STATIC_URL + "pdf.js/web/viewer.html?file="
+WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = getattr(settings, 'WAGTAIL_IN_PREVIEW_PANEL_PDF_URL', WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL)
+
 
 def redirect_request_to_pdf_viewer(original_request):
     """
@@ -52,10 +55,11 @@ def redirect_request_to_pdf_viewer(original_request):
     """
     
     query = original_request.GET.copy()
-    query.pop('in_preview_panel')
+    # this prevents a preview redirection loop
+    query['enforce_preview'] = "true"
     
     file = f"{original_request.path_info}?{query.urlencode()}"
-    url = "/static/pdf.js/web/viewer.html?file=" + urllib.parse.quote(file)
+    url = WAGTAIL_IN_PREVIEW_PANEL_PDF_URL + urllib.parse.quote(file)
 
     return redirect(url)
 
@@ -239,8 +243,7 @@ class PdfModelMixin:
         """
         
         return self._meta.model_name + '.pdf'
-    
-    
+
 
 class PdfViewPageMixin(MultipleViewPageMixin):
     """
@@ -284,13 +287,35 @@ class PdfViewPageMixin(MultipleViewPageMixin):
     # Slugifies the document title if enabled
     pdf_slugify_document_name = True
     
+    @property
+    def pdf_options(self):
+        """
+        Possibility to add custom compiler options for weasyprint
+        """
+        
+        return {}
     
-    def get_pdf_view(self, **kwargs):
+    
+    @property
+    def preview_panel_pdf_options(self):
+        """
+        Possibility to add custom compiler options for weasyprint
+        """
+        
+        return self.pdf_options
+    
+    
+    def get_pdf_view(self, in_preview_panel=False, pdf_options={}, **kwargs):
         """
         Get the serve method for the classes pdf provider
         """
         
-        return self.PDF_VIEW_PROVIDER.as_view()
+        if in_preview_panel:
+            pdf_options = {**self.PDF_VIEW_PROVIDER.preview_panel_pdf_options, **pdf_options}
+        else:
+            pdf_options = {**self.PDF_VIEW_PROVIDER.pdf_options, **pdf_options}
+            
+        return self.PDF_VIEW_PROVIDER.as_view(pdf_options=pdf_options, **kwargs)
     
     def get_pdf_filename(self, request, **kwargs):
         """
@@ -321,6 +346,12 @@ class PdfViewPageMixin(MultipleViewPageMixin):
             
         return template_name
     
+    def make_in_preview_panel_request(self, original_request):
+        """
+        Handle in preview panel requests by redirecting to a pdf viewer like "pdf.js"
+        """
+        
+        return redirect_request_to_pdf_viewer(original_request)
     
     def make_preview_request(self, original_request=None, preview_mode=None, extra_request_attrs=None):
         """
@@ -337,9 +368,11 @@ class PdfViewPageMixin(MultipleViewPageMixin):
             
         extra_request_attrs["original_request"] = original_request
         
-        if original_request and original_request.GET.get('in_preview_panel') and preview_mode=='pdf':
-            # Wagtail >4.0 fix for e.g. firefox (internal pdf viewer prohibits CORS)
-            return redirect_request_to_pdf_viewer(original_request)
+        if WAGTAIL_IN_PREVIEW_PANEL_PDF_URL and preview_mode=='pdf':
+            # check whether the request is inside the preview panel and ensure that redirection is not prohibited (i.e. avoid recursion)
+            if original_request and original_request.GET.get('in_preview_panel') and not original_request.GET.get('enforce_preview'):
+                # Wagtail >4.0 fix for e.g. firefox (internal pdf viewer prohibits CORS)
+                return self.make_in_preview_panel_request(original_request)
         
         return super().make_preview_request(original_request=original_request, preview_mode=preview_mode, extra_request_attrs=extra_request_attrs)
     
@@ -351,7 +384,25 @@ class PdfViewPageMixin(MultipleViewPageMixin):
             Serve the page as pdf using the classes pdf view
         """
         
-        view = self.get_pdf_view(**kwargs)
+        view = self.get_pdf_view(pdf_options=self.pdf_options)
+        
+        response = view(request, object=self, mode="pdf", **kwargs)
+        
+        # TODO remove
+        add_never_cache_headers(response)
+            
+        return response
+    
+    def serve_preview_pdf(self, request, **kwargs):
+        """
+            Serve the page as pdf using the classes pdf view
+        """
+        
+        if request.original_request and not request.original_request.GET.get('in_preview_panel'):
+            view = self.get_pdf_view(pdf_options=self.pdf_options)
+        else:
+            view = self.get_pdf_view(pdf_options=self.preview_panel_pdf_options, in_preview_panel=True)
+        
         response = view(request, object=self, mode="pdf", **kwargs)
         
         # TODO remove
