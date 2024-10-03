@@ -17,10 +17,12 @@ from html.parser import HTMLParser
 from django.utils.safestring import mark_safe
 from django.conf import settings
 
+from markupsafe import Markup
+
 
 class WagtailCoreExtensionLatex(WagtailCoreExtension):
     
-    def _include_block(self, value, context=None):
+    def _include_block(self, value, context, use_context, *args):
         """
         Automatically translate richtext blocks into latex
         """
@@ -28,14 +30,14 @@ class WagtailCoreExtensionLatex(WagtailCoreExtension):
         if isinstance(value.block, blocks.RichTextBlock) or isinstance(value.block, TableBlock):
             
             if hasattr(value, 'render_as_block'):
-                if context:
+                if use_context:
                     new_context = context.get_all()
                 else:
                     new_context = {}
                 
-                return jinja2.Markup(richtext_as_tex(value.render_as_block(context=new_context)))
+                return Markup(richtext_as_tex(value.render_as_block(context=new_context)))
 
-        return super()._include_block(value, context=context)
+        return super()._include_block(value, context=context, use_context=use_context, *args)
 
 
 def latex_escape(string):
