@@ -3,14 +3,14 @@ from datetime import datetime
 from django.db import models
 
 from wagtail.core.models import Page
-from wagtail.core.fields import RichTextField, StreamField
+from wagtail.core.fields import RichTextField
 from wagtail.core import blocks
 from wagtail.contrib.table_block.blocks import TableBlock
 
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 
-from wagtail.admin.edit_handlers import FieldPanel, InlinePanel#, MultiFieldPanel, FieldRowPanel
+from wagtail.admin.edit_handlers import FieldPanel, InlinePanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 

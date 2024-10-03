@@ -7,7 +7,7 @@ from wagtail.core.fields import RichTextField, StreamField
 from wagtail.core import blocks
 from wagtail.contrib.table_block.blocks import TableBlock
 
-from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel, FieldRowPanel#, InlinePanel, MultiFieldPanel, 
+from wagtail.admin.edit_handlers import FieldPanel, FieldRowPanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 
@@ -89,7 +89,7 @@ class ReportPage(PdfViewPageMixin, Page):
         ("columns", ColumnBlock()),
         ("competences", CompetencesBlock()),
         ("offers", OffersBlock()),
-    ], blank=True)
+    ], blank=True, use_json_field=True)
     
     
     #body = RichTextField(blank=True)
@@ -99,7 +99,7 @@ class ReportPage(PdfViewPageMixin, Page):
             FieldPanel("address_left"),
             FieldPanel("address_right"),
         ]),
-        StreamFieldPanel("content"),
+        FieldPanel("content"),
     ]
     
     

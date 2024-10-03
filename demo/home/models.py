@@ -7,7 +7,7 @@ from wagtail.core.fields import RichTextField, StreamField
 from wagtail.core import blocks
 from wagtail.contrib.table_block.blocks import TableBlock
 
-from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel#, InlinePanel, MultiFieldPanel, FieldRowPanel
+from wagtail.admin.edit_handlers import FieldPanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 
@@ -35,12 +35,12 @@ class DemoModel(PdfModelMixin, models.Model):
     content = StreamField([
         ("heading", blocks.CharBlock(form_classname="full title")),
         ("text", blocks.RichTextBlock()),
-    ], blank=True)
+    ], blank=True, use_json_field=True)
     
     panels = [
         FieldPanel("creation_date"),
         FieldPanel("author"),
-        StreamFieldPanel("content"),
+        FieldPanel("content"),
     ]
     
     template_name = "home/demo_model.html"
@@ -77,12 +77,12 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     content = StreamField([
         ("heading", blocks.CharBlock(form_classname="full title")),
         ("text", blocks.RichTextBlock()),
-    ], blank=True)
+    ], blank=True, use_json_field=True)
     
     content_panels = Page.content_panels + [
         FieldPanel("creation_date"),
         FieldPanel("author"),
-        StreamFieldPanel("content"),
+        FieldPanel("content"),
     ]
     
     
@@ -133,7 +133,7 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
         ("image", ImageChooserBlock()),
         ("table", TableBlock()),
         
-    ], blank=True)
+    ], blank=True, use_json_field=True)
     
     
     body = RichTextField(blank=True)
@@ -143,7 +143,7 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
         FieldPanel("author"),
         FieldPanel("address"),
         FieldPanel("body"),
-        StreamFieldPanel("content"),
+        FieldPanel("content"),
     ]
     
     
