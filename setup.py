@@ -18,9 +18,8 @@ setuptools.setup(
     package_data={'': ['LICENSE', 'templates/*']},
     include_package_data=True,
     python_requires=">=3.8",
-    install_requires=["wagtail"],
+    install_requires=["wagtail", "django-weasyprint"],
     extras_require = {
-        'weasyprint':["django-weasyprint"],
         'django-tex':["django-tex"],
     },
 )

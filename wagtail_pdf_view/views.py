@@ -14,6 +14,10 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from wagtail.admin.views.generic.permissions import PermissionCheckedMixin
 from wagtail.core.permission_policies import ModelPermissionPolicy
+    
+import weasyprint
+
+from django_weasyprint.views import WeasyTemplateResponseMixin, WeasyTemplateResponse
 
 
 
@@ -105,6 +109,55 @@ class AdminViewMixin(PermissionCheckedMixin):
     permission_required = 'view'
 
 
+PDF_VIEWS = {}
+PDF_ADMIN_VIEWS = {}
+
+def register_pdf_view(name):
+    def decorator(cls):
+        print('registering PDF view', name, cls)
+        
+        if name in PDF_VIEWS:
+            raise ValueError(f"A pdf view with the name '{name}' is already registered")
+        
+        if not issubclass(cls, PDFDetailView):
+            raise ValueError(f"The registered pdf view class '{cls.__name__}' must inherit from PDFDetailView")
+        
+        PDF_VIEWS[name] = cls
+        
+        return cls
+    return decorator
+
+
+def register_pdf_admin_view(name):
+    def decorator(cls):
+        print('registering PDF admin view', name, cls)
+        
+        if name in PDF_ADMIN_VIEWS:
+            raise ValueError(f"A pdf admin view with the name '{name}' is already registered")
+        
+        if not issubclass(cls, PDFDetailView):
+            raise ValueError(f"The registered pdf admin view class '{cls.__name__}' must inherit from PDFDetailView")
+        
+        PDF_ADMIN_VIEWS[name] = cls
+        
+        return cls
+    return decorator
+
+
+def get_pdf_view(name):
+    try: 
+        return PDF_VIEWS[name]
+    except KeyError:
+        raise f"No such pdf view '{name}', did you forget to use @register_pdf_view('{name}') ?"
+    
+    
+def get_pdf_admin_view(name):
+    try: 
+        return PDF_ADMIN_VIEWS[name]
+    except KeyError:
+        raise f"No such pdf view '{name}', did you forget to use @register_pdf_admin_view('{name}') ?"
+
+
 try:
     import django_tex
 except ImportError:
@@ -153,126 +206,116 @@ if django_tex:
             return super().get_template_names()
 
 
+    @register_pdf_view('django-tex')
     class WagtailTexView(WagtailTexTemplateMixin, PDFDetailView):
         pass
 
+    @register_pdf_admin_view('django-tex')
     class WagtailTexAdminView(AdminViewMixin, WagtailTexView):
         pass
 
-
-try:
-    import django_weasyprint
-except ImportError:
-    django_weasyprint = None
-
-
-if django_weasyprint:
-
-    import weasyprint
-    from django_weasyprint.views import WeasyTemplateResponseMixin, WeasyTemplateResponse
-    
-    
-    """
-    The default compiler options for weasyprint can be changed in the settings    
-    """
-    WAGTAIL_DEFAULT_PDF_OPTIONS = getattr(settings, 'WAGTAIL_DEFAULT_PDF_OPTIONS', {
-        'pdf_forms': True
-    })
-    
-    WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS', {
-        'pdf_forms': False,
-        'dpi': 50,
-        'jpeg_quality': 30
-    })
     
 
-    class WagtailWeasyTemplateResponse(WeasyTemplateResponse):    
+"""
+The default compiler options for weasyprint can be changed in the settings    
+"""
+WAGTAIL_DEFAULT_PDF_OPTIONS = getattr(settings, 'WAGTAIL_DEFAULT_PDF_OPTIONS', {
+    'pdf_forms': True
+})
+
+WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS', {
+    'pdf_forms': False,
+    'dpi': 50,
+    'jpeg_quality': 30
+})
+
+class WagtailWeasyTemplateResponse(WeasyTemplateResponse):    
+    
+    def get_base_url(self):
+        """
+        Determine base URL to fetch CSS files from `WEASYPRINT_BASEURL` or
+        fall back to using the root path of the URL used in the request.
         
-        def get_base_url(self):
-            """
-            Determine base URL to fetch CSS files from `WEASYPRINT_BASEURL` or
-            fall back to using the root path of the URL used in the request.
+        In contrast to the implementation in django_weasyprint this method contains a
+        working fallback for the dummy requests used by wagtails page preview mode.
+        """
+        
+        if hasattr(settings, 'WEASYPRINT_BASEURL'):
+            return settings.WEASYPRINT_BASEURL
+        
+        # Check if this is a wagtail dummy request and use the uri of the original request instead
+        if getattr(self._request, "is_dummy", False) and hasattr(self._request, "original_request"):
+            return self._request.original_request.build_absolute_uri('/')
             
-            In contrast to the implementation in django_weasyprint this method contains a
-            working fallback for the dummy requests used by wagtails page preview mode.
-            """
-            
-            if hasattr(settings, 'WEASYPRINT_BASEURL'):
-                return settings.WEASYPRINT_BASEURL
-            
-            # Check if this is a wagtail dummy request and use the uri of the original request instead
-            if getattr(self._request, "is_dummy", False) and hasattr(self._request, "original_request"):
-                return self._request.original_request.build_absolute_uri('/')
-                
-            return self._request.build_absolute_uri('/')
+        return self._request.build_absolute_uri('/')
 
 
-        def get_css(self, base_url, url_fetcher, font_config, *args, **kwargs):
-            """
-            Get the css for weasyprint
-            
-            All paths are collected from _stylesheets and are tried to be located
-            with djangos static loaders.
-            
-            This method is an override of django_weasyprint.views.WeasyTemplateResponse.get_css(),
-            which also supports static file paths. If the relative import fails, django automatically tries searches
-            for the correct static file by using django.contrib.staticfiles.finders.find(value) as fallback.
-            """
-            
-            tmp = []
-            for value in self._stylesheets:
+    def get_css(self, base_url, url_fetcher, font_config, *args, **kwargs):
+        """
+        Get the css for weasyprint
+        
+        All paths are collected from _stylesheets and are tried to be located
+        with djangos static loaders.
+        
+        This method is an override of django_weasyprint.views.WeasyTemplateResponse.get_css(),
+        which also supports static file paths. If the relative import fails, django automatically tries searches
+        for the correct static file by using django.contrib.staticfiles.finders.find(value) as fallback.
+        """
+        
+        tmp = []
+        for value in self._stylesheets:
+            try:
+                # Try to import relative to BASE_DIR
+                css = weasyprint.CSS(
+                    value,
+                    base_url=base_url,
+                    url_fetcher=url_fetcher,
+                    font_config=font_config,
+                )
+            except FileNotFoundError as e:
                 try:
-                    # Try to import relative to BASE_DIR
+                    # Try to locate the static file
+                    path = find(value)
+                except SuspiciousFileOperation:
+                    # raise original FileNotFound, raising SuspiciousFileOperation would be misleading
+                    raise e
+                
+                if path:
                     css = weasyprint.CSS(
-                        value,
+                        path,
                         base_url=base_url,
                         url_fetcher=url_fetcher,
                         font_config=font_config,
                     )
-                except FileNotFoundError as e:
-                    try:
-                        # Try to locate the static file
-                        path = find(value)
-                    except SuspiciousFileOperation:
-                        # raise original FileNotFound, raising SuspiciousFileOperation would be misleading
-                        raise e
-                    
-                    if path:
-                        css = weasyprint.CSS(
-                            path,
-                            base_url=base_url,
-                            url_fetcher=url_fetcher,
-                            font_config=font_config,
-                        )
-                    else:
-                        raise e
-                    
-                if css:
-                    tmp.append(css)
+                else:
+                    raise e
                 
-            return tmp
-
-
-    class WagtailWeasyTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, WeasyTemplateResponseMixin):
-        response_class = WagtailWeasyTemplateResponse
-        
-        pdf_options = WAGTAIL_DEFAULT_PDF_OPTIONS
-        preview_panel_pdf_options = WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS
-        
-        def get_pdf_stylesheets(self):
-            # try to call get_stylesheets, otherwise get stylesheet attribute
-            try:
-                stylesheets = self.object.get_stylesheets(self.request)
-            except AttributeError:
-                stylesheets = getattr(self.object, "stylesheets", [])
+            if css:
+                tmp.append(css)
             
-            return stylesheets
+        return tmp
 
-
-    class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
-        pass
+class WagtailWeasyTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, WeasyTemplateResponseMixin):
+    response_class = WagtailWeasyTemplateResponse
+    
+    pdf_options = WAGTAIL_DEFAULT_PDF_OPTIONS
+    preview_panel_pdf_options = WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS
+    
+    def get_pdf_stylesheets(self):
+        # try to call get_stylesheets, otherwise get stylesheet attribute
+        try:
+            stylesheets = self.object.get_stylesheets(self.request)
+        except AttributeError:
+            stylesheets = getattr(self.object, "stylesheets", [])
         
- 
-    class WagtailWeasyAdminView(AdminViewMixin, WagtailWeasyView):
-        pass
+        return stylesheets
+
+@register_pdf_view('weasyprint')
+class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
+    pass
+    
+
+@register_pdf_admin_view('weasyprint')
+class WagtailWeasyAdminView(AdminViewMixin, WagtailWeasyView):
+    pass
 

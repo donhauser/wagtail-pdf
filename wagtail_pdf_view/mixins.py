@@ -19,27 +19,13 @@ import urllib.parse
 
 from wagtail.core.models import Page
 
-from .views import AdminViewMixin
+from .views import get_pdf_view, get_pdf_admin_view, WagtailWeasyView, WagtailWeasyAdminView, AdminViewMixin
 
 
-# set default pdf provider (weasyprint/django-tex)
-try:
-    from .views import WagtailWeasyView, WagtailWeasyAdminView
-    DEFAULT_PDF_VIEW_PROVIDER = WagtailWeasyView
-    DEFAULT_PDF_ADMIN_VIEW_PROVIDER = WagtailWeasyAdminView
-    
-except ImportError:
-    try:
-        from .views import WagtailTexView, WagtailTexAdminView
-        DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView
-        DEFAULT_PDF_ADMIN_VIEW_PROVIDER = WagtailTexAdminView
-        
-    except ImportError:
-        print("Warning: DEFAULT_PDF_VIEW_PROVIDER unspecified." + 
-              "Make sure you have either django-weasyprint or django-tex installed, or provide a default.")
-        
-        DEFAULT_PDF_VIEW_PROVIDER = None
-        DEFAULT_PDF_ADMIN_VIEW_PROVIDER = None
+
+DEFAULT_PDF_VIEW = get_pdf_view(getattr(settings, 'WAGTAIL_PDF_VIEW', 'weasyprint'))
+DEFAULT_PDF_ADMIN_VIEW = get_pdf_admin_view(getattr(settings, 'WAGTAIL_PDF_ADMIN_VIEW', 'weasyprint'))
+
 
 WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL = settings.STATIC_URL + "pdf.js/web/viewer.html?file="
 WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = getattr(settings, 'WAGTAIL_IN_PREVIEW_PANEL_PDF_URL', WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL)
@@ -255,9 +241,10 @@ class PdfViewPageMixin(MultipleViewPageMixin):
     For this to work you have to ensure that you've installed 'WeasyPrint'.
     Alternatively you can also use 'django-tex' (make sure that you have 'luatex' installed)
     and either implement
-    >    PDF_VIEW_PROVIDER = DjangoTexProvider
+    >    pdf_view_class = DjangoTexProvider
     in your page model, or add
-    >    DEFAULT_PDF_VIEW_PROVIDER = DjangoTexProvider
+    >    WAGTAIL_PDF_VIEW = 'django-tex'
+    >    # WAGTAIL_PDF_ADMIN_VIEW = 'django-tex' # if you want to use model admin as well
     to your projects settings.
     
     By default only the pdf view is available, i.e. you may only view this page as pdf.
@@ -282,7 +269,7 @@ class PdfViewPageMixin(MultipleViewPageMixin):
     # you can implement Page.attachment to control the Content-Disposition attachment
     ATTACHMENT_VARIABLE = "attachment"
     
-    PDF_VIEW_PROVIDER = getattr(settings, "DEFAULT_PDF_VIEW_PROVIDER", DEFAULT_PDF_VIEW_PROVIDER)
+    pdf_view_class = DEFAULT_PDF_VIEW
     
     # Slugifies the document title if enabled
     pdf_slugify_document_name = True
@@ -311,11 +298,11 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         """
         
         if in_preview_panel:
-            pdf_options = {**self.PDF_VIEW_PROVIDER.preview_panel_pdf_options, **pdf_options}
+            pdf_options = {**self.pdf_view_class.preview_panel_pdf_options, **pdf_options}
         else:
-            pdf_options = {**self.PDF_VIEW_PROVIDER.pdf_options, **pdf_options}
+            pdf_options = {**self.pdf_view_class.pdf_options, **pdf_options}
             
-        return self.PDF_VIEW_PROVIDER.as_view(pdf_options=pdf_options, **kwargs)
+        return self.pdf_view_class.as_view(pdf_options=pdf_options, **kwargs)
     
     def get_pdf_filename(self, request, **kwargs):
         """

@@ -8,7 +8,7 @@ from wagtail.contrib.modeladmin.helpers import ButtonHelper, PermissionHelper, A
 from django.urls.exceptions import NoReverseMatch
 
 
-from ..mixins import DEFAULT_PDF_VIEW_PROVIDER, DEFAULT_PDF_ADMIN_VIEW_PROVIDER
+from ..mixins import DEFAULT_PDF_VIEW, DEFAULT_PDF_ADMIN_VIEW
 
 
 class ExtendableButtonHelperMixin:
@@ -134,7 +134,7 @@ class ModelAdminPdfViewMixin:
     button_helper_class = PdfViewButtonHelper
     permission_helper_class = CustomActionPermissionHelper
     
-    pdf_view_class = getattr(settings, "DEFAULT_PDF_VIEW_PROVIDER", DEFAULT_PDF_VIEW_PROVIDER)
+    pdf_view_class = DEFAULT_PDF_VIEW
 
 
     @property
@@ -198,7 +198,7 @@ class ModelAdminPdfAdminViewMixin:
     button_helper_class = PdfViewButtonHelper
     permission_helper_class = CustomActionPermissionHelper
     
-    pdf_admin_view_class = getattr(settings, "DEFAULT_PDF_ADMIN_VIEW_PROVIDER", DEFAULT_PDF_ADMIN_VIEW_PROVIDER)
+    pdf_admin_view_class = DEFAULT_PDF_ADMIN_VIEW
 
 
     @property
