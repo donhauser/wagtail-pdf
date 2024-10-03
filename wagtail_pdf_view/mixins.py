@@ -19,13 +19,7 @@ import urllib.parse
 
 from wagtail.core.models import Page
 
-from .views import get_pdf_view, get_pdf_admin_view, WagtailWeasyView, WagtailWeasyAdminView, AdminViewMixin
-
-
-
-DEFAULT_PDF_VIEW = get_pdf_view(getattr(settings, 'WAGTAIL_PDF_VIEW', 'weasyprint'))
-DEFAULT_PDF_ADMIN_VIEW = get_pdf_admin_view(getattr(settings, 'WAGTAIL_PDF_ADMIN_VIEW', 'weasyprint'))
-
+from .views import get_pdf_view, AdminViewMixin
 
 WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL = settings.STATIC_URL + "pdf.js/web/viewer.html?file="
 WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = getattr(settings, 'WAGTAIL_IN_PREVIEW_PANEL_PDF_URL', WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL)
@@ -269,7 +263,7 @@ class PdfViewPageMixin(MultipleViewPageMixin):
     # you can implement Page.attachment to control the Content-Disposition attachment
     ATTACHMENT_VARIABLE = "attachment"
     
-    pdf_view_class = DEFAULT_PDF_VIEW
+    pdf_view_class = get_pdf_view()
     
     # Slugifies the document title if enabled
     pdf_slugify_document_name = True
