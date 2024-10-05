@@ -66,7 +66,7 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     #pdf_options = {'dpi': 20}
     
     ## render with LaTeX instead
-    # PDF_VIEW_PROVIDER = WagtailTexView
+    # pdf_view_class = WagtailTexView
     
     ## Add a custom view provider or method
     #def get_pdf_view(self):

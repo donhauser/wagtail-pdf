@@ -15,7 +15,7 @@ from django.urls import re_path
 
 from home import models
 
-#from django.views.static import serve
+from django.views.static import serve
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),
@@ -25,8 +25,8 @@ urlpatterns = [
 
     path('search/', search_views.search, name='search'),
 
-    #re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    #re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
 ]
 
 
@@ -39,11 +39,8 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
-
-pdf_path = getattr(settings, 'WAGTAIL_PDF_MODEL_URL_PATH', "pdf/")
-
 urlpatterns = urlpatterns + [
-    path(pdf_path, include(wagtail_pdf_urls)),
+    path("pdf/", include(wagtail_pdf_urls)),
     # For anything not caught by a more specific rule above, hand over to
     # Wagtail's page serving mechanism. This should be the last pattern in
     # the list:

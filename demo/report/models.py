@@ -66,7 +66,7 @@ class ReportPage(PdfViewPageMixin, Page):
     # attachment = True
     
     ## render with LaTeX instead
-    # PDF_VIEW_PROVIDER = WagtailTexView
+    # pdf_view_class = WagtailTexView
     
     ## Add a custom view provider or method
     #def get_pdf_view(self):

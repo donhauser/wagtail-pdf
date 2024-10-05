@@ -195,6 +195,10 @@ WAGTAIL_SITE_NAME = "demo"
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
 BASE_URL = 'http://example.com'
 
+# using LaTex
+#WAGTAIL_PDF_VIEW = "django-tex"
+#WAGTAIL_PDF_ADMIN_VIEW = "django-tex"
+
 # disable the usage of pdf.js in the preview panel (this can cause CORS issues e.g. on firefox)
 #WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = ""
 # use a different pdf viewer for the preview
@@ -208,5 +212,5 @@ BASE_URL = 'http://example.com'
 #WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {'pdf_forms': True}
 #WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {}
 
-# Customization of the 'live' path of models with pdf rendering
-#WAGTAIL_PDF_MODEL_URL_PATH = 'files/generated/'
+# disable pdf.js as in panel pdf preview
+#WAGTAIL_PDF_VIEWER = {}
