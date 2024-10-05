@@ -3,8 +3,8 @@
 import datetime
 from django.db import migrations, models
 import django.db.models.deletion
-import wagtail.core.blocks
-import wagtail.core.fields
+import wagtail.blocks
+import wagtail.fields
 import wagtail.images.blocks
 import wagtail_pdf_view.mixins
 
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('creation_date', models.DateField(default=datetime.datetime.now)),
                 ('author', models.CharField(max_length=200)),
-                ('content', wagtail.core.fields.StreamField([('heading', wagtail.core.blocks.CharBlock(form_classname='full title')), ('text', wagtail.core.blocks.RichTextBlock())], blank=True)),
+                ('content', wagtail.fields.StreamField([('heading', wagtail.blocks.CharBlock(form_classname='full title')), ('text', wagtail.blocks.RichTextBlock())], blank=True)),
             ],
             bases=(wagtail_pdf_view.mixins.PdfModelMixin, models.Model),
         ),
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ('creation_date', models.DateField(default=datetime.datetime.now)),
                 ('author', models.CharField(max_length=200)),
                 ('address', models.TextField(blank=True)),
-                ('content', wagtail.core.fields.StreamField([('heading', wagtail.core.blocks.CharBlock(form_classname='full title')), ('text', wagtail.core.blocks.RichTextBlock()), ('image', wagtail.images.blocks.ImageChooserBlock())], blank=True)),
+                ('content', wagtail.fields.StreamField([('heading', wagtail.blocks.CharBlock(form_classname='full title')), ('text', wagtail.blocks.RichTextBlock()), ('image', wagtail.images.blocks.ImageChooserBlock())], blank=True)),
             ],
             options={
                 'abstract': False,
@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('page_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='wagtailcore.page')),
                 ('creation_date', models.DateField(default=datetime.datetime.now)),
                 ('author', models.CharField(max_length=200)),
-                ('content', wagtail.core.fields.StreamField([('heading', wagtail.core.blocks.CharBlock(form_classname='full title')), ('text', wagtail.core.blocks.RichTextBlock())], blank=True)),
+                ('content', wagtail.fields.StreamField([('heading', wagtail.blocks.CharBlock(form_classname='full title')), ('text', wagtail.blocks.RichTextBlock())], blank=True)),
             ],
             options={
                 'abstract': False,

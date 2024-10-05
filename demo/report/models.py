@@ -7,7 +7,7 @@ from wagtail.fields import RichTextField, StreamField
 from wagtail import blocks
 from wagtail.contrib.table_block.blocks import TableBlock
 
-from wagtail.admin.edit_handlers import FieldPanel, FieldRowPanel
+from wagtail.admin.panels import FieldPanel, FieldRowPanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 

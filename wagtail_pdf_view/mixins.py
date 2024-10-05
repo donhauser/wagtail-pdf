@@ -15,7 +15,7 @@ from .utils import route_function, get_pdf_viewer_url
 from django.utils.cache import patch_cache_control
 from django.utils.text import slugify
 
-from wagtail.core.models import Page
+from wagtail.models import Page
 
 from .views import get_pdf_view, AdminViewMixin
 

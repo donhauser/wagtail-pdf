@@ -10,7 +10,7 @@ from wagtail.contrib.table_block.blocks import TableBlock
 from modelcluster.fields import ParentalKey
 from modelcluster.models import ClusterableModel
 
-from wagtail.admin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.admin.panels import FieldPanel, InlinePanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 
