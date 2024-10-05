@@ -113,8 +113,11 @@ PDF_VIEWS = {}
 PDF_ADMIN_VIEWS = {}
 
 def register_pdf_view(name):
+    """
+    Register the decorated class as pdf view under the given name
+    """
+    
     def decorator(cls):
-        print('registering PDF view', name, cls)
         
         if name in PDF_VIEWS:
             raise ValueError(f"A pdf view with the name '{name}' is already registered")
@@ -129,8 +132,11 @@ def register_pdf_view(name):
 
 
 def register_pdf_admin_view(name):
+    """
+    Register the decorated class as pdf admin view under the given name
+    """
+    
     def decorator(cls):
-        print('registering PDF admin view', name, cls)
         
         if name in PDF_ADMIN_VIEWS:
             raise ValueError(f"A pdf admin view with the name '{name}' is already registered")
@@ -144,7 +150,13 @@ def register_pdf_admin_view(name):
     return decorator
 
 
-def get_pdf_view(name = None):
+def get_pdf_view(name=None):
+    """
+    Get the pdf view class (e.g. WagtailWeasyView) which is associated with the given name
+    
+    If no name is given, this method default to either settings.WAGTAIL_PDF_VIEW or 'weasyprint' as fallback.
+    """
+    
     if name is None:
         name = getattr(settings, 'WAGTAIL_PDF_VIEW', 'weasyprint')
     
@@ -154,7 +166,13 @@ def get_pdf_view(name = None):
         raise ValueError(f"No such pdf view '{name}', did you forget to use @register_pdf_view('{name}') ?")
     
     
-def get_pdf_admin_view(name = None):
+def get_pdf_admin_view(name=None):
+    """
+    Get the pdf admin view class (e.g. WagtailWeasyAdminView) which is associated with the given name
+    
+    If no name is given, this method default to either settings.WAGTAIL_PDF_ADMIN_VIEW or 'weasyprint' as fallback.
+    """
+    
     if name is None:
         name = getattr(settings, 'WAGTAIL_PDF_ADMIN_VIEW', 'weasyprint')
         

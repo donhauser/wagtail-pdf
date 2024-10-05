@@ -10,19 +10,14 @@ from django.utils.translation import gettext as _
 
 from django.utils.cache import add_never_cache_headers
 
-from .utils import route_function
+from .utils import route_function, get_pdf_viewer_url
 
 from django.utils.cache import patch_cache_control
 from django.utils.text import slugify
 
-import urllib.parse
-
 from wagtail.core.models import Page
 
 from .views import get_pdf_view, AdminViewMixin
-
-WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL = settings.STATIC_URL + "pdf.js/web/viewer.html?file="
-WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = getattr(settings, 'WAGTAIL_IN_PREVIEW_PANEL_PDF_URL', WAGTAIL_IN_PREVIEW_PANEL_PDF_DEFAULT_URL)
 
 
 def redirect_request_to_pdf_viewer(original_request):
@@ -38,8 +33,8 @@ def redirect_request_to_pdf_viewer(original_request):
     # this prevents a preview redirection loop
     query['enforce_preview'] = "true"
     
-    file = f"{original_request.path_info}?{query.urlencode()}"
-    url = WAGTAIL_IN_PREVIEW_PANEL_PDF_URL + urllib.parse.quote(file)
+    path = f"{original_request.path_info}?{query.urlencode()}"
+    url = get_pdf_viewer_url(path)
 
     return redirect(url)
 
@@ -349,7 +344,8 @@ class PdfViewPageMixin(MultipleViewPageMixin):
             
         extra_request_attrs["original_request"] = original_request
         
-        if WAGTAIL_IN_PREVIEW_PANEL_PDF_URL and preview_mode=='pdf':
+        # Hook in the specified WAGTAIL_PDF_VIEWER in 'pdf' mode, setting WAGTAIL_PDF_VIEWER = {} will disable the viewer
+        if preview_mode=='pdf'and getattr(settings, 'WAGTAIL_PDF_VIEWER', None) != {}:
             # check whether the request is inside the preview panel and ensure that redirection is not prohibited (i.e. avoid recursion)
             if original_request and original_request.GET.get('in_preview_panel') and not original_request.GET.get('enforce_preview'):
                 # Wagtail >4.0 fix for e.g. firefox (internal pdf viewer prohibits CORS)
