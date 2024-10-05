@@ -16,16 +16,15 @@ If you are undecided which one to use, [weasyprint](https://github.com/Kozea/Wea
 Install the latest version from pypi:
 
 ```sh
+# This package allows to convert HTML -> PDF using weasyprint
 pip install -U wagtail-pdf-view
-# and either this for HTML -> PDF
-pip install -U django-weasyprint
-# and/or this for Latex -> PDF
-pip install -U django-tex
 ```
 
 and add the following to your installed apps:
 
 ```py
+# settings.py
+
 INSTALLED_APPS = [
     ...
     'wagtail_pdf_view',
@@ -34,11 +33,39 @@ INSTALLED_APPS = [
 ]
 ```
 
+Furthermore, you need to hook in `wagtail_pdf_urls` into your projects `urls.py`:
+
+
+```py
+# urls.py
+
+from wagtail_pdf_view import urls as wagtail_pdf_urls
+
+urlpatterns = urlpatterns + [
+    # hook in the 'live'-view PDFs under "pdf/"
+    path("pdf/", include(wagtail_pdf_urls)),
+    ...
+    # IMPORTANT: This must be below the "pdf/" include
+    path("", include(wagtail_urls)),
+    ...
+]
+```
+
+This is required for a working in panel preview (using [pdf.js](https://mozilla.github.io/pdf.js/)) and to access (model admin) PDFs from outside of the admin area.
+
+On your production environment you need to refresh the static files:
+
+```sh
+python manage.py collectstatic
+```
+
+
+### LaTeX
+
 While [weasyprint](https://github.com/Kozea/WeasyPrint) is installed as dependency of [django-weasyprint](https://github.com/fdemmer/django-weasyprint) and works out of the box,
 a working latex interpreter (lualatex) must be installed on your system if you want to use [django-tex](https://github.com/weinbusch/django-tex).
 
-If [django-weasyprint](https://github.com/fdemmer/django-weasyprint) and [django-tex](https://github.com/weinbusch/django-tex) is installed, weasyprint is selected by default.
-For [django-tex](https://github.com/weinbusch/django-tex) you should set `DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView` in your settings.
+Please follow the "Using LaTeX" instructions below.
 
 
 ## Usage
@@ -60,9 +87,9 @@ Like for a regular Wagtail page, the template should be located under: `<app_dir
 **If you're using django-tex the template extention .tex is expected**.
 
 ```py
-from wagtail.core.models import Page
-from wagtail.core.fields import RichTextField, StreamField
-from wagtail.core import blocks
+from wagtail.models import Page
+from wagtail.fields import RichTextField, StreamField
+from wagtail import blocks
 from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin
@@ -194,26 +221,6 @@ To make incorporating PDF-views as simple as possible this module offers two `Mo
 If you are not using `ModelAdmin` you may add a view for the model manually.
 
 
-### Hooking in the URLs
-
-If you want to access PDFs from outside of the admin area, you need to hook in `wagtail_pdf_urls` into your projects `urls.py`.
-If you are unsure whether you need this, it is recommended use the hook below:
-
-```py
-# urls.py
-
-from wagtail_pdf_view import urls as wagtail_pdf_urls
-
-urlpatterns = urlpatterns + [
-    # hook in the 'live'-view PDFs under "pdf/"
-    path("pdf/", include(wagtail_pdf_urls)),
-    ...
-    # IMPORTANT: This must be below the "pdf/" include
-    path("", include(wagtail_urls)),
-    ...
-]
-```
-
 ### Simple Example
 
 Your model needs to inherit from `PdfModelMixin`:
@@ -252,7 +259,7 @@ from .models import YourPdfModel
 
 
 # OPTION 1)
-# Creating a public view model (accessible for everybody through a url)
+# Creating a live/public view model (accessible for everybody through a url)
 # MAKE SURE YOU HOOKED IN THE URLs PROPERLY
 
 from wagtail_pdf_view.modeladmin.mixins import ModelAdminPdfViewMixin
@@ -281,14 +288,16 @@ This is an example how you can hook in the models PDF-view manually (without usi
 # urls.py
 
 # This will be either WagtailWeasyView or WagtailTexView depending on your installation
-from wagtail_pdf_view.mixins import DEFAULT_PDF_VIEW_PROVIDER
+# The view returned by get_pdf_admin_view will furthermore check whether the permission 'view' is set.
+from wagtail_pdf_view.views import get_pdf_view, get_pdf_admin_view
 
 from .models import YourPdfModel
 
 urlpatterns = [
     ...
     # URL path for the DetailView with primary key pk
-    re_path(r'^some/path/(?P<pk>\d+)/$',  DEFAULT_PDF_VIEW_PROVIDER.as_view(model=YourPdfModel)),
+    re_path(r'^some/path/(?P<pk>\d+)/$',  get_pdf_view().as_view(model=YourPdfModel)), # default pdf view
+    re_path(r'^some/path/tex/(?P<pk>\d+)/$',  get_pdf_view('django-tex').as_view(model=YourPdfModel)), # pdf view with the name 'django-tex'
     ...
 ]
 ```
@@ -318,11 +327,19 @@ Note that `custom_object_buttons` is defaulted with the actions *pdf* and *live*
 If you are setting a custom `PermissionHelper`, you need to inherit from `CustomActionPermissionHelperMixin`.
 
 
-## Using latex
+## Using LaTeX
 
-When you want to use latex instead of HTML, you should be aware of the following:
 
-You need to add django_tex to `INSTALLED_APPS`:
+
+When you want to use LaTeX instead of HTML, you should be do the following:
+
+
+```py
+# if you instead want to compile Latex -> PDF please also install django-tex
+pip install -U django-tex
+```
+
+You need to add django_tex to `INSTALLED_APPS`, add the jinja tex engine to `TEMPLATES` and set `WAGTAIL_PDF_VIEW` in your settings.py:
 
 ```py
 INSTALLED_APPS = [
@@ -330,10 +347,7 @@ INSTALLED_APPS = [
     'django_tex',
     ...
 ]
-```
 
-You need to add the jinja tex engine to `TEMPLATES` in your settings.py:
-```py
 TEMPLATES += [
     {
         'NAME': 'tex',
@@ -344,16 +358,14 @@ TEMPLATES += [
         },
     },
 ]
+
+
+WAGTAIL_PDF_VIEW = 'django-tex'
+WAGTAIL_PDF_ADMIN_VIEW = 'django-tex'
 ```
 
-Set `DEFAULT_PDF_VIEW_PROVIDER` in your settings:
 
-```py
-from wagtail_pdf_view.views import WagtailTexView
-DEFAULT_PDF_VIEW_PROVIDER = WagtailTexView
-```
-
-In case you just want to use latex for a specific model settings you can overrite `PDF_VIEW_PROVIDER`:
+In case you just want to use latex for a specific model settings you can overrite `pdf_view_class` and leave `WAGTAIL_PDF_VIEW='weasyprint'` _(default)_:
 
 ```py
 from wagtail_pdf_view.views import WagtailTexView
@@ -361,7 +373,7 @@ from wagtail_pdf_view.views import WagtailTexView
 class SimplePdfPage(PdfViewPageMixin, Page):
 
     # render with LaTeX instead
-    PDF_VIEW_PROVIDER = WagtailTexView
+    pdf_view_class = WagtailTexView
 ```
 
 In general you should include *wagtail_preamble.tex*, which provides required packages and commands for proper richtext handling.
