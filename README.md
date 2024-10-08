@@ -6,7 +6,7 @@ With this extension you can utilize all the benefits from the wagtail page syste
 *StreamField* and *RichText* for your generated PDF document.
 Models may be easily rendered as PDF and will be accessible either through the admin interface or through a public URL.
 
-![Short Demo Clip](clip_wagtail_pdf_view_low.gif)
+![For PDF generation, this module provides many functions from the wagtail page system and offers simplified model rendering.](clip_wagtail_pdf_view_low.gif)
 
 ## Installing
 
