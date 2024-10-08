@@ -1,23 +1,23 @@
 
 from wagtail.contrib.routable_page.models import RoutablePageMixin, route
 
-
 from django.conf import settings
-
 from django.shortcuts import redirect
-
 from django.utils.translation import gettext as _
-
 from django.utils.cache import add_never_cache_headers
-
-from .utils import route_function, get_pdf_viewer_url
-
 from django.utils.cache import patch_cache_control
 from django.utils.text import slugify
+from django.urls.exceptions import NoReverseMatch
+
+import logging
 
 from wagtail.models import Page
 
+from .utils import route_function, get_pdf_viewer_url
+
 from .views import get_pdf_view, AdminViewMixin
+
+logger = logging.getLogger(__name__)
 
 
 def redirect_request_to_pdf_viewer(original_request):
@@ -348,8 +348,12 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         if preview_mode=='pdf'and getattr(settings, 'WAGTAIL_PDF_VIEWER', None) != {}:
             # check whether the request is inside the preview panel and ensure that redirection is not prohibited (i.e. avoid recursion)
             if original_request and original_request.GET.get('in_preview_panel') and not original_request.GET.get('enforce_preview'):
-                # Wagtail >4.0 fix for e.g. firefox (internal pdf viewer prohibits CORS)
-                return self.make_in_preview_panel_request(original_request)
+                
+                try:
+                    # Wagtail >4.0 fix for e.g. firefox (internal pdf viewer prohibits CORS)
+                    return self.make_in_preview_panel_request(original_request)
+                except NoReverseMatch as e:
+                    logger.warn(f"Could not create an 'in preview panel' request. Falling back to regular PDF serving.")
         
         return super().make_preview_request(original_request=original_request, preview_mode=preview_mode, extra_request_attrs=extra_request_attrs)
     
