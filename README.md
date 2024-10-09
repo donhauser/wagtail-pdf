@@ -67,20 +67,22 @@ Please follow the "Using LaTeX" instructions below.
 
 ## Usage
 
-All you need to do to render your Wagtail page as PDF, is to inherit from `PdfModelMixin`.
+All you need to do to render your Wagtail `Page` as PDF, is to inherit from `PdfViewPageMixin`.
 If you want to render a model instead, read the section **ModelAdmin** below.
 
 **If you want to use latex, read the latex section below.**
 
-Further configuration options include:
+A page inheriting from `PdfViewPageMixin` can be further configured with the options:
 - `ROUTE_CONFIG` to enable rendering of the default HTML view and the PDF view at the same time
 - `stylesheets` resp. `get_stylesheets` to include CSS stylesheets for [weasyprint](https://github.com/Kozea/WeasyPrint)
+- `pdf_options` and `preview_panel_pdf_options` to change the compilation options of weasyprint for the page (and in panel preview respectively)
 - `attachment` to control the file attachment (i.e. whether to download the PDF or open it in the browser)
 
 ## Examples
 
-A very simple example page using Wagtails StreamField.
-Like for a regular Wagtail page, the template should be located under: `<app_dir>/templates/<app>/simple_pdf_page.html`
+A very simple example page using Wagtails `StreamField`.
+Like for a regular Wagtail `Page`, the template should be located under: `<app_dir>/templates/<app>/simple_pdf_page.html`
+
 **If you're using django-tex the template extention .tex is expected**.
 
 ```py
@@ -89,7 +91,7 @@ Like for a regular Wagtail page, the template should be located under: `<app_dir
 from wagtail.models import Page
 from wagtail.fields import RichTextField, StreamField
 from wagtail import blocks
-from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel
+from wagtail.admin.edit_handlers import FieldPanel, StreamField
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin
 
@@ -104,7 +106,7 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     
     # content panel for the CMS (same as always)
     content_panels = Page.content_panels + [
-        StreamFieldPanel("content"),
+        StreamField("content"),
     ]
     
     # OPTIONAL: If you want to include a stylesheet
@@ -113,22 +115,22 @@ class SimplePdfPage(PdfViewPageMixin, Page):
 
 ### Usage of `ROUTE_CONFIG`:
 
-Default configuration:
+By default, i.e. without setting `ROUTE_CONFIG`, only the pdf-view is available, i.e. you may only view this page as pdf.
+This is useful when you just want to display a generated pdf document easily.
 
 ```py
 # models.py
 
 class PdfOnlyPage(PdfViewPageMixin, Page):
 
-    # PDF only
+    # PDF only (default case)
     ROUTE_CONFIG = [
         ("pdf", r'^$'),
         ("html", None),
     ]
     
 ```
-By default only the pdf-view is available, i.e. you may only view this page as pdf.
-This is useful when you just want to display a generated pdf document easily.
+
 
 
 A HTML first page: You can access the wagtail page as you're used e.g. *127.0.0.1/mypage*.
@@ -167,15 +169,13 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
     
 ```
 
-`ROUTE_CONFIG` is build on wagtails [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html), you can specify routes as you want (e.g. `("html", r'^web/$')`)
+`ROUTE_CONFIG` is build on wagtails [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html), you can specify routes as desired (e.g. `("html", r'^web/$')`)
 
 #### Reversing and using URLs in templates
 
-As of version 0.2 reversing url patterns is supported.
+Reversing url patterns is supported, which is useful in cases when you are serving multiple views (i.e. html and pdf).
 
-This feature is useful in cases when you are serving multiple views (i.e. html and pdf).
-
-You can access the URLs for the different views by using `routablepageurl` from the [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html) module:
+Within templates, you can access the URLs for the different views by using `routablepageurl` from the [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html) module:
 
 ```html
 {% load wagtailroutablepage_tags %}
@@ -209,7 +209,7 @@ In most cases you don't need the full functionality of `routablepageurl`. To mak
 {% endfor %}
 ```
 
-If you are just interested in the extention to the normal page url:
+In python code `Page.reverse_subpage()` can be used to reverse a HTML-first page to obtain it's pdf-url:
 
 ```py
 # this will be 'pdf/' in HTML-first mode
@@ -218,7 +218,7 @@ page.reverse_subpage('pdf')
 
 ## ModelAdmin
 
-You can enable model rendering by inheriting from `PdfModelMixin`:
+To enable model rendering, your model must inherit from `PdfModelMixin`:
 
 ```py
 # models.py
@@ -241,7 +241,7 @@ Unlike for PDF-Pages where everything is done in the Page-model, the hooks for `
 By inheriting from `ModelAdminPdfViewMixin` or `ModelAdminPdfAdminViewMixin` you
 automatically make the model accessible through a live url or through the admin panel respectively.
 
-If you are not using `ModelAdmin` you may still add a view for the model manually.
+If you dont want to use `ModelAdmin` you may also add a view for the model manually.
 
 
 ### View configuration with ModelAdmin
@@ -263,7 +263,6 @@ from .models import YourPdfModel
 
 # OPTION 1)
 # Creating a live/public view model (accessible for everybody through a url)
-# MAKE SURE YOU HOOKED IN THE URLs PROPERLY
 
 from wagtail_pdf_view.modeladmin.mixins import ModelAdminPdfViewMixin
 
@@ -331,9 +330,59 @@ Note that `custom_object_buttons` is defaulted with the actions *pdf* and *live*
 
 If you are setting a custom `PermissionHelper`, you need to inherit from `CustomActionPermissionHelperMixin`.
 
+## Further customizations
+
+Instead of using the predefined pdf view class `WagtailWeasyView`, a custom class can be used a view:
+
+```py
+# views.py
+
+from wagtail_pdf_view.views import WagtailWeasyView, AdminViewMixin, register_pdf_view, register_pdf_admin_view
+
+# register your custom pdf view class
+@register_pdf_view('custom-name')
+class CustomWagtailWeasyView(WagtailWeasyView):
+
+    # Extend the class as preferenced
+    pass
+
+# (optional)
+# register your custom pdf view class for restricted admin view
+@register_pdf_admin_view('custom-name')
+class CustomWagtailWeasyAdminView(AdminViewMixin, CustomWagtailWeasyView):
+
+    # Extend the class as preferenced
+    pass
+
+```
+
+### Settings
+
+The following settings are supported:
+- `WAGTAIL_PDF_VIEW` and `WAGTAIL_PDF_ADMIN_VIEW` to hook in custom view classes
+- `WAGTAIL_DEFAULT_PDF_OPTIONS` and `WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS` to set global options for weasyprint
+- `WAGTAIL_PDF_VIEWER` to configure a different pdf viewer (instead of _pdf.js_) in the panel preview
+
+```py
+# settings.py
+
+# using a custom view class
+WAGTAIL_PDF_VIEW = "custom-name"
+WAGTAIL_PDF_ADMIN_VIEW = "custom-name"
+
+# set default compiler options for weasyprint (e.g. to disable `pdf_forms` or to set the embedded image `dpi`)
+WAGTAIL_DEFAULT_PDF_OPTIONS = {'pdf_forms': False}
+WAGTAIL_DEFAULT_PDF_OPTIONS = {'dpi': 50}
+
+# set the compiler options for weasyprint when rendering inside the preview panel
+WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {'pdf_forms': True}
+WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {}
+
+# disable pdf.js as in panel pdf preview
+WAGTAIL_PDF_VIEWER = {}
+```
 
 ## Using LaTeX
-
 
 
 When you want to use LaTeX instead of HTML, you should be do the following:
