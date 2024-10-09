@@ -28,6 +28,9 @@ INSTALLED_APPS = [
     'wagtail.contrib.routable_page',
     ...
 ]
+
+# Specify the root url for weasyprint (fix static files not loading, e.g. when using docker)
+# WEASYPRINT_BASEURL = '/'
 ```
 
 Furthermore, you need to hook in `wagtail_pdf_urls` into your projects `urls.py`:
@@ -362,6 +365,7 @@ The following settings are supported:
 - `WAGTAIL_PDF_VIEW` and `WAGTAIL_PDF_ADMIN_VIEW` to hook in custom view classes
 - `WAGTAIL_DEFAULT_PDF_OPTIONS` and `WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS` to set global options for weasyprint
 - `WAGTAIL_PDF_VIEWER` to configure a different pdf viewer (instead of _pdf.js_) in the panel preview
+- `WEASYPRINT_BASEURL` to fix static files loading problems, e.g. when using docker (from [django-weasyprint](https://github.com/fdemmer/django-weasyprint))
 
 ```py
 # settings.py
@@ -380,6 +384,9 @@ WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {}
 
 # disable pdf.js as in panel pdf preview
 WAGTAIL_PDF_VIEWER = {}
+
+# Specify the root url for weasyprint (fix static files not loading)
+WEASYPRINT_BASEURL = '/'
 ```
 
 ## Using LaTeX
