@@ -302,7 +302,7 @@ urlpatterns = [
     ...
     # URL path for the DetailView with primary key pk
     re_path(r'^some/path/(?P<pk>\d+)/$',  get_pdf_view().as_view(model=YourPdfModel)), # default pdf view
-    re_path(r'^some/path/tex/(?P<pk>\d+)/$',  get_pdf_view('django-tex').as_view(model=YourPdfModel)), # pdf view with the name 'django-tex'
+    re_path(r'^some/custom/path/(?P<pk>\d+)/$',  get_pdf_view('custom-name').as_view(model=YourPdfModel)), # custom pdf view with the name 'custom-name'
     ...
 ]
 ```
