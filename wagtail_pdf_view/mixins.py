@@ -39,7 +39,61 @@ def redirect_request_to_pdf_viewer(original_request):
     return redirect(url)
 
 
-class MultipleViewPageMixin(RoutablePageMixin):
+class MultiplePreviewMixin:
+    """
+    Forward mode specific preview handling by serve_preview_<mode>() methods
+    """
+
+    def get_preview_modes(self):
+        """
+        List of modes in which this page can be displayed for preview/moderation purposes.
+
+        The modes are a list of (internal_name, display_name) tuples.
+        """
+
+        return []
+
+    @property
+    def preview_modes(self):
+        """
+        List of modes in which this page can be displayed for preview/moderation purposes.
+
+        The modes are a list of (internal_name, display_name) tuples.
+        By default this is set to a list of all available views (given by ROUTE_CONFIG),
+        e.g. [("html", "HTML"), ("pdf", "PDF")].
+        """
+        return self.get_preview_modes()
+
+
+    # kwargs not supported (by wagtail) yet
+    def serve_preview(self, request, mode_name):
+        """
+        Handle serve_preview like wagtail (version 2.12)
+        but hook in mode specific serve_*()/serve_preview_*() methods.
+        e.g. call serve_preview_pdf() or serve_pdf() for mode="pdf"
+        """
+
+        mode_names = [mode[0] for mode in self.preview_modes]
+
+        request.is_preview = True
+
+        # try to serve preview or serve regular if the given mode is available as preview
+        if mode_name in mode_names:
+            try:
+                serve = getattr(self, "serve_preview_" + mode_name)
+            except AttributeError:
+                serve = getattr(self, "serve_" + mode_name)
+
+            response = serve(request)
+
+            patch_cache_control(response, private=True)
+
+            return response
+
+        return super().serve_preview(request, mode_name)
+
+
+class MultipleViewPageMixin(MultiplePreviewMixin, RoutablePageMixin):
     """
     This mixin enables multiple different views on a wagtail page.
     
@@ -60,8 +114,9 @@ class MultipleViewPageMixin(RoutablePageMixin):
     and 
     >   @route(r'^pdf/$')
     >   def serve_pdf(..)
-    to the class and default the classes preview modes with
-    >   DEFAULT_PREVIEW_MODES = [("html", "html preview"), ("pdf", "pdf preview")]
+    to the class.
+
+    The serve_preview_<...>() methods are provided accordingly.
     
     To make the difference to a naive implementation with @route is that an inheriting class
     is still able to change/extend the path configuration to its needs by reimplementing
@@ -78,23 +133,18 @@ class MultipleViewPageMixin(RoutablePageMixin):
     
     def __init_subclass__(cls):
         """
-            Process cls.ROUTE_CONFIG on class creation.
+            Process cls.ROUTE_CONFIG on class creation
             
-            Renew cls.DEFAULT_PREVIEW_MODES to match the configuration and
-            implement @routed serve_*() methods
+            The route configuration is used to implement @routed serve_*() methods.
         """
         
         # Check if the inheriting class really is a true page.
         # This prevents adding unwanted routes to mixins inheriting from this class
         if issubclass(cls, Page):
             
-            cls.DEFAULT_PREVIEW_MODES = []
-            
             for key, value, *args in cls.ROUTE_CONFIG:
                 
                 if value:
-                    cls.DEFAULT_PREVIEW_MODES.append((key, cls.get_preview_name(key)))
-                    
                     serve_method = "serve_{}".format(key)
                     
                     # Use a propper name for @route, otherwise the name will be 'inner' due to function wrapping
@@ -132,55 +182,27 @@ class MultipleViewPageMixin(RoutablePageMixin):
                         url += '/'
                     
                     setattr(self, "url_"+key, url+self.reverse_subpage(name))
-    
-    @classmethod
-    def get_preview_name(cls, key):
+
+    def get_preview_mode_name(self, key):
         """
         Suggested name for the preview key
-        
+
         e.g. "pdf" will become "pdf preview"
         """
-        
-        return _(str(key).upper())
-    
-    @property
-    def preview_modes(self):
-        """
-        A list of (internal_name, display_name) tuples for the modes in which
-        this page can be displayed for preview/moderation purposes.
-        By default this is set to a list of all available views (given by ROUTE_CONFIG),
-        e.g. [("html", "html preview"), ("pdf", "pdf preview")].
-        The defaults are provided by DEFAULT_PREVIEW_MODES of the class
-        """
-        return type(self).DEFAULT_PREVIEW_MODES
 
-    
-    # kwargs not supported (by wagtail) yet
-    def serve_preview(self, request, mode_name):
+        return _(str(key).upper())
+
+    def get_preview_modes(self):
         """
-        Handle serve_preview like wagtail (version 2.12)
-        but hook in mode specific serve_*()/serve_preview_*() methods.
-        e.g. call serve_preview_pdf() or serve_pdf() for mode="pdf" 
+        List of modes in which this page can be displayed for preview/moderation purposes.
+
+        The modes are a list of (internal_name, display_name) tuples.
+        By default this is set to a list of all available views (given by ROUTE_CONFIG),
+        e.g. [("html", "HTML"), ("pdf", "PDF")].
+        The mode names are assigned by get_preview_mode_name
         """
-        
-        mode_names = [mode[0] for mode in self.preview_modes]
-        
-        request.is_preview = True
-        
-        # try to serve preview or serve regular if the given mode is available as preview
-        if mode_name in mode_names:
-            try:
-                serve = getattr(self, "serve_preview_" + mode_name)
-            except AttributeError:
-                serve = getattr(self, "serve_" + mode_name)
-                
-            response = serve(request)
-        
-            patch_cache_control(response, private=True)
-            
-            return response
-        
-        return super().serve_preview(request, mode_name)
+
+        return [(mode, self.get_preview_mode_name(mode)) for mode, *_ in type(self).ROUTE_CONFIG]
 
 
 class PdfModelMixin:
