@@ -11,7 +11,7 @@ from django.urls.exceptions import NoReverseMatch
 
 import logging
 
-from wagtail.models import Page
+from wagtail.models import Page, PreviewableMixin
 
 from .utils import route_function, get_pdf_viewer_url
 
@@ -51,7 +51,7 @@ class MultiplePreviewMixin:
         The modes are a list of (internal_name, display_name) tuples.
         """
 
-        return []
+        raise NotImplementedError("The model must override either get_preview_modes() or preview_modes")
 
     @property
     def preview_modes(self):
@@ -182,43 +182,6 @@ class MultipleViewPageMixin(RoutablePageMixin):
                     setattr(self, "url_"+key, url+self.reverse_subpage(name))
 
 
-class PdfModelMixin:
-    TEMPLATE_ATTRIBUTE = 'template_name'
-    ADMIN_TEMPLATE_ATTRIBUTE = 'admin_template_name'
-    
-    def get_context(self, *args, **kwargs):
-        return {}
-    
-    # TODO context=... for block
-    def get_template(self, request, *args, extension=None, view_provider=None, **kwargs):
-        
-        if isinstance(view_provider, AdminViewMixin):
-            template_attr = self.ADMIN_TEMPLATE_ATTRIBUTE
-        else:
-            template_attr = self.TEMPLATE_ATTRIBUTE
-        
-        try:
-            return getattr(self, template_attr)
-        except AttributeError:
-            raise AttributeError("Template attribute not found for model {}. "
-                                 "Try to add {}='path/to/your/template_file' to {}".format(self._meta.model_name, template_attr, self._meta.model_name)
-                                 )
-    
-    
-    # you can implement Page.attachment to control the Content-Disposition attachment
-    ATTACHMENT_VARIABLE = "attachment"
-    
-    
-    def get_pdf_filename(self, request, **kwargs):
-        """
-        Get the filename for the pdf file
-        
-        This simply extends the model name with '.pdf'
-        """
-        
-        return self._meta.model_name + '.pdf'
-
-
 class BasePdfViewMixin:
     """
     A mixin for serving a wagtail objects as '.pdf'
@@ -286,7 +249,7 @@ class BasePdfViewMixin:
         extra_request_attrs["original_request"] = original_request
         
         # Hook in the specified WAGTAIL_PDF_VIEWER in 'pdf' mode, setting WAGTAIL_PDF_VIEWER = {} will disable the viewer
-        if preview_mode=='pdf'and getattr(settings, 'WAGTAIL_PDF_VIEWER', None) != {}:
+        if preview_mode=='pdf' and getattr(settings, 'WAGTAIL_PDF_VIEWER', None) != {}:
             # check whether the request is inside the preview panel and ensure that redirection is not prohibited (i.e. avoid recursion)
             if original_request and original_request.GET.get('in_preview_panel') and not original_request.GET.get('enforce_preview'):
                 
@@ -317,7 +280,7 @@ class BasePdfViewMixin:
         """
             Serve the page as pdf using the classes pdf view
         """
-        
+
         if request.original_request and not request.original_request.GET.get('in_preview_panel'):
             view = self.get_pdf_view(pdf_options=self.pdf_options)
         else:
@@ -329,6 +292,47 @@ class BasePdfViewMixin:
         add_never_cache_headers(response)
             
         return response
+
+
+# TODO improve/clean up
+class PdfModelMixin(BasePdfViewMixin, MultiplePreviewMixin, PreviewableMixin):
+    TEMPLATE_ATTRIBUTE = 'template_name'
+    ADMIN_TEMPLATE_ATTRIBUTE = 'admin_template_name'
+
+    def get_preview_modes(self):
+        return [("pdf", "PDF")]
+
+    def get_context(self, *args, **kwargs):
+        return {}
+
+    # TODO context=... for block
+    def get_template(self, request, *args, extension=None, view_provider=None, **kwargs):
+
+        if isinstance(view_provider, AdminViewMixin):
+            template_attr = self.ADMIN_TEMPLATE_ATTRIBUTE
+        else:
+            template_attr = self.TEMPLATE_ATTRIBUTE
+
+        try:
+            return getattr(self, template_attr)
+        except AttributeError:
+            raise AttributeError("Template attribute not found for model {}. "
+                                 "Try to add {}='path/to/your/template_file' to {}".format(self._meta.model_name, template_attr, self._meta.model_name)
+                                 )
+
+
+    # you can implement Page.attachment to control the Content-Disposition attachment
+    ATTACHMENT_VARIABLE = "attachment"
+
+
+    def get_pdf_filename(self, request, **kwargs):
+        """
+        Get the filename for the pdf file
+
+        This simply extends the model name with '.pdf'
+        """
+
+        return self._meta.model_name + '.pdf'
 
 
 class PdfViewPageMixin(BasePdfViewMixin, MultiplePreviewMixin, MultipleViewPageMixin):
