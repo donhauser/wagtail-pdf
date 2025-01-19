@@ -93,7 +93,7 @@ class MultiplePreviewMixin:
         return super().serve_preview(request, mode_name)
 
 
-class MultipleViewPageMixin(MultiplePreviewMixin, RoutablePageMixin):
+class MultipleViewPageMixin(RoutablePageMixin):
     """
     This mixin enables multiple different views on a wagtail page.
     
@@ -115,8 +115,6 @@ class MultipleViewPageMixin(MultiplePreviewMixin, RoutablePageMixin):
     >   @route(r'^pdf/$')
     >   def serve_pdf(..)
     to the class.
-
-    The serve_preview_<...>() methods are provided accordingly.
     
     To make the difference to a naive implementation with @route is that an inheriting class
     is still able to change/extend the path configuration to its needs by reimplementing
@@ -183,27 +181,6 @@ class MultipleViewPageMixin(MultiplePreviewMixin, RoutablePageMixin):
                     
                     setattr(self, "url_"+key, url+self.reverse_subpage(name))
 
-    def get_preview_mode_name(self, key):
-        """
-        Suggested name for the preview key
-
-        e.g. "pdf" will become "pdf preview"
-        """
-
-        return _(str(key).upper())
-
-    def get_preview_modes(self):
-        """
-        List of modes in which this page can be displayed for preview/moderation purposes.
-
-        The modes are a list of (internal_name, display_name) tuples.
-        By default this is set to a list of all available views (given by ROUTE_CONFIG),
-        e.g. [("html", "HTML"), ("pdf", "PDF")].
-        The mode names are assigned by get_preview_mode_name
-        """
-
-        return [(mode, self.get_preview_mode_name(mode)) for mode, *_ in type(self).ROUTE_CONFIG]
-
 
 class PdfModelMixin:
     TEMPLATE_ATTRIBUTE = 'template_name'
@@ -242,41 +219,11 @@ class PdfModelMixin:
         return self._meta.model_name + '.pdf'
 
 
-class PdfViewPageMixin(MultipleViewPageMixin):
+class BasePdfViewMixin:
     """
-    A mixin for serving a wagtailpage as '.pdf'
-    
-    This works by rerouting the pages sub-url (example.com/path/to/page/<sub-url>) with
-    wagtails routable pages and rendering it with a custom pdf view.
-    
-    For this to work you have to ensure that you've installed 'WeasyPrint'.
-    Alternatively you can also use 'django-tex' (make sure that you have 'luatex' installed)
-    and either implement
-    >    pdf_view_class = DjangoTexProvider
-    in your page model, or add
-    >    WAGTAIL_PDF_VIEW = 'django-tex'
-    >    # WAGTAIL_PDF_ADMIN_VIEW = 'django-tex' # if you want to use model admin as well
-    to your projects settings.
-    
-    By default only the pdf view is available, i.e. you may only view this page as pdf.
-    This may be changed by reimplementing ROUTE_CONFIG, e.g.
-    
-    ROUTE_CONFIG = [
-        ("pdf", r'^pdf/$'), # pdf view
-        ("html", r'^$'),    # default view
-    ]
-    
-    will serve the page as usual and /pdf/ will serve the rendered '.pdf' document.
-    
-    You should avoid to override the serve() method, as this likely will break the routing.
+    A mixin for serving a wagtail objects as '.pdf'
     """
-    
-    # by default only the pdf view is available, i.e. you may only view this page as pdf
-    ROUTE_CONFIG = [
-        ("pdf", r'^$'),
-        ("html", None),
-    ]
-    
+
     # you can implement Page.attachment to control the Content-Disposition attachment
     ATTACHMENT_VARIABLE = "attachment"
     
@@ -314,35 +261,7 @@ class PdfViewPageMixin(MultipleViewPageMixin):
             pdf_options = {**self.pdf_view_class.pdf_options, **pdf_options}
             
         return self.pdf_view_class.as_view(pdf_options=pdf_options, **kwargs)
-    
-    def get_pdf_filename(self, request, **kwargs):
-        """
-        Get the filename for the pdf file
-        
-        This simply extends the page title with '.pdf'
-        """
-        
-        if self.pdf_slugify_document_name:
-            title = slugify(self.title)
-        else:
-            title = self.title
-        
-        return title + '.pdf'
-    
-    
-    def get_template(self, request, extension=None, **kwargs):
-        """
-        Get the template name for this page
-        
-        extension can be used to replace the file extension '.html' with e.g. '.tex'
-        """
-        
-        template_name = super().get_template(request)
-        
-        if extension:
-            template_name = template_name.replace(".html", "."+extension)
-            
-        return template_name
+
     
     def make_in_preview_panel_request(self, original_request):
         """
@@ -379,8 +298,6 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         
         return super().make_preview_request(original_request=original_request, preview_mode=preview_mode, extra_request_attrs=extra_request_attrs)
     
-    def serve_html(self, request, **kwargs):
-        return super().serve(request)
     
     def serve_pdf(self, request, **kwargs):
         """
@@ -412,3 +329,93 @@ class PdfViewPageMixin(MultipleViewPageMixin):
         add_never_cache_headers(response)
             
         return response
+
+
+class PdfViewPageMixin(BasePdfViewMixin, MultiplePreviewMixin, MultipleViewPageMixin):
+    """
+    A mixin for serving a wagtailpage as '.pdf'
+
+    This works by rerouting the pages sub-url (example.com/path/to/page/<sub-url>) with
+    wagtails routable pages and rendering it with a custom pdf view.
+
+    For this to work you have to ensure that you've installed 'WeasyPrint'.
+    Alternatively you can also use 'django-tex' (make sure that you have 'luatex' installed)
+    and either implement
+    >    pdf_view_class = DjangoTexProvider
+    in your page model, or add
+    >    WAGTAIL_PDF_VIEW = 'django-tex'
+    >    # WAGTAIL_PDF_ADMIN_VIEW = 'django-tex' # if you want to use model admin as well
+    to your projects settings.
+
+    By default only the pdf view is available, i.e. you may only view this page as pdf.
+    This may be changed by reimplementing ROUTE_CONFIG, e.g.
+
+    ROUTE_CONFIG = [
+        ("pdf", r'^pdf/$'), # pdf view
+        ("html", r'^$'),    # default view
+    ]
+
+    will serve the page as usual and /pdf/ will serve the rendered '.pdf' document.
+
+    You should avoid to override the serve() method, as this likely will break the routing.
+    """
+
+    # by default only the pdf view is available, i.e. you may only view this page as pdf
+    ROUTE_CONFIG = [
+        ("pdf", r'^$'),
+        ("html", None),
+    ]
+
+
+    def get_pdf_filename(self, request, **kwargs):
+        """
+        Get the filename for the pdf file
+
+        This simply extends the page title with '.pdf'
+        """
+
+        if self.pdf_slugify_document_name:
+            title = slugify(self.title)
+        else:
+            title = self.title
+
+        return title + '.pdf'
+
+
+    def get_template(self, request, extension=None, **kwargs):
+        """
+        Get the template name for this page
+
+        extension can be used to replace the file extension '.html' with e.g. '.tex'
+        """
+
+        template_name = super().get_template(request)
+
+        if extension:
+            template_name = template_name.replace(".html", "."+extension)
+
+        return template_name
+
+    def get_preview_mode_name(self, key):
+        """
+        Suggested name for the preview key
+
+        e.g. "pdf" will become "pdf preview"
+        """
+
+        return _(str(key).upper())
+
+    def get_preview_modes(self):
+        """
+        List of modes in which this page can be displayed for preview/moderation purposes.
+
+        The modes are a list of (internal_name, display_name) tuples.
+        By default this is set to a list of all available views (given by ROUTE_CONFIG),
+        e.g. [("html", "HTML"), ("pdf", "PDF")].
+        The mode names are assigned by get_preview_mode_name
+        """
+
+        return [(mode, self.get_preview_mode_name(mode)) for mode, *_ in type(self).ROUTE_CONFIG]
+
+    def serve_html(self, request, **kwargs):
+        return super().serve(request)
