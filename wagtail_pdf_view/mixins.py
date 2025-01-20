@@ -194,37 +194,45 @@ class BasePdfViewMixin:
     
     # Slugifies the document title if enabled
     pdf_slugify_document_name = True
-    
-    @property
-    def pdf_options(self):
-        """
-        Possibility to add custom compiler options for weasyprint
-        """
-        
-        return {}
-    
-    
-    @property
-    def preview_panel_pdf_options(self):
-        """
-        Possibility to add custom compiler options for weasyprint
-        """
-        
-        return self.pdf_options
-    
-    
-    def get_pdf_view(self, in_preview_panel=False, pdf_options={}, **kwargs):
-        """
-        Get the serve method for the classes pdf provider
-        """
-        
-        if in_preview_panel:
-            pdf_options = {**self.pdf_view_class.preview_panel_pdf_options, **pdf_options}
-        else:
-            pdf_options = {**self.pdf_view_class.pdf_options, **pdf_options}
-            
-        return self.pdf_view_class.as_view(pdf_options=pdf_options, **kwargs)
 
+    def get_pdf_view_kwargs(self):
+        """
+        Specifies the keyword arguments for the pdf view class construction
+        """
+
+        kwargs = {}
+
+        if hasattr(self, 'pdf_options'):
+            kwargs['pdf_options'] = self.pdf_options
+
+        return kwargs
+
+    def get_preview_pdf_view_kwargs(self):
+        """
+        Specifies the keyword arguments for the pdf view class construction in preview mode
+        """
+
+        kwargs = self.get_pdf_view_kwargs()
+
+        if hasattr(self, 'preview_panel_pdf_options'):
+            kwargs['pdf_options'] = self.preview_panel_pdf_options
+    
+        return kwargs
+
+    @property
+    def pdf_view(self):
+        """
+        Serve a pdf view for a given instance
+        """
+
+        return self.pdf_view_class.as_view(**self.get_pdf_view_kwargs())
+
+    @property
+    def preview_pdf_view(self):
+
+        # TODO handle pdf_options = self.pdf_view_class.preview_panel_pdf_options
+
+        return self.pdf_view_class.as_view(**self.get_preview_pdf_view_kwargs())
     
     def make_in_preview_panel_request(self, original_request):
         """
@@ -267,9 +275,7 @@ class BasePdfViewMixin:
             Serve the page as pdf using the classes pdf view
         """
         
-        view = self.get_pdf_view(pdf_options=self.pdf_options)
-        
-        response = view(request, object=self, mode="pdf", **kwargs)
+        response = self.pdf_view(request, object=self, mode="pdf", **kwargs)
         
         # TODO remove
         add_never_cache_headers(response)
@@ -282,9 +288,9 @@ class BasePdfViewMixin:
         """
 
         if request.original_request and not request.original_request.GET.get('in_preview_panel'):
-            view = self.get_pdf_view(pdf_options=self.pdf_options)
+            view = self.pdf_view
         else:
-            view = self.get_pdf_view(pdf_options=self.preview_panel_pdf_options, in_preview_panel=True)
+            view = self.preview_pdf_view
         
         response = view(request, object=self, mode="pdf", **kwargs)
         
