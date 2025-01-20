@@ -182,7 +182,7 @@ class MultipleViewPageMixin(RoutablePageMixin):
                     setattr(self, "url_"+key, url+self.reverse_subpage(name))
 
 
-class BasePdfViewMixin:
+class BasePdfMixin:
     """
     A mixin for serving a wagtail objects as '.pdf'
     """
@@ -207,18 +207,6 @@ class BasePdfViewMixin:
 
         return kwargs
 
-    def get_preview_pdf_view_kwargs(self):
-        """
-        Specifies the keyword arguments for the pdf view class construction in preview mode
-        """
-
-        kwargs = self.get_pdf_view_kwargs()
-
-        if hasattr(self, 'preview_panel_pdf_options'):
-            kwargs['pdf_options'] = self.preview_panel_pdf_options
-    
-        return kwargs
-
     @property
     def pdf_view(self):
         """
@@ -227,12 +215,61 @@ class BasePdfViewMixin:
 
         return self.pdf_view_class.as_view(**self.get_pdf_view_kwargs())
 
+    def serve_pdf(self, request, **kwargs):
+        """
+            Serve the page as pdf using the classes pdf view
+        """
+
+        response = self.pdf_view(request, object=self, mode="pdf", **kwargs)
+
+        # TODO remove
+        add_never_cache_headers(response)
+
+        return response
+
+
+class BasePreviewablePdfMixin(BasePdfMixin, MultiplePreviewMixin):
+    """
+    A mixin for serving the preview of a wagtail objects as '.pdf'
+    """
+
+    preview_pdf_view_class = get_pdf_view()
+
+    def get_preview_modes(self):
+        """
+        List of modes in which this page can be displayed for preview/moderation purposes.
+
+        The modes are a list of (internal_name, display_name) tuples.
+        """
+
+        return [("pdf", "PDF")]
+
+    def get_preview_pdf_view_kwargs(self, in_preview_panel=False):
+        """
+        Specifies the keyword arguments for the pdf view class construction in preview mode
+        """
+
+        kwargs = self.get_pdf_view_kwargs()
+
+        kwargs['preview'] = True
+        kwargs['in_preview_panel'] = in_preview_panel
+
+        if in_preview_panel and hasattr(self, 'preview_panel_pdf_options'):
+            kwargs['preview_panel_pdf_options'] = self.preview_panel_pdf_options
+        elif hasattr(self, 'preview_pdf_options'):
+            kwargs['preview_pdf_options'] = self.preview_pdf_options
+    
+        return kwargs
+
     @property
     def preview_pdf_view(self):
 
-        # TODO handle pdf_options = self.pdf_view_class.preview_panel_pdf_options
+        return self.preview_pdf_view_class.as_view(**self.get_preview_pdf_view_kwargs(False))
 
-        return self.pdf_view_class.as_view(**self.get_preview_pdf_view_kwargs())
+    @property
+    def preview_panel_pdf_view(self):
+
+        return self.preview_pdf_view_class.as_view(**self.get_preview_pdf_view_kwargs(True))
     
     def make_in_preview_panel_request(self, original_request):
         """
@@ -268,29 +305,19 @@ class BasePdfViewMixin:
                     logger.warn(f"Could not create an 'in preview panel' request. Falling back to regular PDF serving.")
         
         return super().make_preview_request(original_request=original_request, preview_mode=preview_mode, extra_request_attrs=extra_request_attrs)
-    
-    
-    def serve_pdf(self, request, **kwargs):
-        """
-            Serve the page as pdf using the classes pdf view
-        """
-        
-        response = self.pdf_view(request, object=self, mode="pdf", **kwargs)
-        
-        # TODO remove
-        add_never_cache_headers(response)
-            
-        return response
+
     
     def serve_preview_pdf(self, request, **kwargs):
         """
-            Serve the page as pdf using the classes pdf view
+        Serve the page preview as pdf using the classes pdf view
+
+        If the preview is opened outside of the preview panel, the usual pdf view is used instead.
         """
 
         if request.original_request and not request.original_request.GET.get('in_preview_panel'):
-            view = self.pdf_view
+            view = self.pdf_view#preview_pdf_view
         else:
-            view = self.preview_pdf_view
+            view = self.preview_panel_pdf_view
         
         response = view(request, object=self, mode="pdf", **kwargs)
         
@@ -301,12 +328,9 @@ class BasePdfViewMixin:
 
 
 # TODO improve/clean up
-class PdfModelMixin(BasePdfViewMixin, MultiplePreviewMixin, PreviewableMixin):
+class PdfModelMixin(BasePreviewablePdfMixin, PreviewableMixin):
     TEMPLATE_ATTRIBUTE = 'template_name'
     ADMIN_TEMPLATE_ATTRIBUTE = 'admin_template_name'
-
-    def get_preview_modes(self):
-        return [("pdf", "PDF")]
 
     def get_context(self, *args, **kwargs):
         return {}
@@ -341,7 +365,7 @@ class PdfModelMixin(BasePdfViewMixin, MultiplePreviewMixin, PreviewableMixin):
         return self._meta.model_name + '.pdf'
 
 
-class PdfViewPageMixin(BasePdfViewMixin, MultiplePreviewMixin, MultipleViewPageMixin):
+class PdfViewPageMixin(BasePreviewablePdfMixin, MultipleViewPageMixin):
     """
     A mixin for serving a wagtailpage as '.pdf'
 

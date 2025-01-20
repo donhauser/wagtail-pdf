@@ -20,7 +20,6 @@ import weasyprint
 from django_weasyprint.views import WeasyTemplateResponseMixin, WeasyTemplateResponse
 
 
-
 class ConcreteSingleObjectMixin(SingleObjectMixin):
     """
     This mixin simply enables you to pass a concrete instance of a object to a DetailView
@@ -112,6 +111,7 @@ class AdminViewMixin(PermissionCheckedMixin):
 PDF_VIEWS = {}
 PDF_ADMIN_VIEWS = {}
 
+
 def register_pdf_view(name):
     """
     Register the decorated class as pdf view under the given name
@@ -182,12 +182,11 @@ def get_pdf_admin_view(name=None):
         raise ValueError(f"No such pdf view '{name}', did you forget to use @register_pdf_admin_view('{name}') ?")
 
 
-
-
 try:
     import django_tex
 except ImportError:
     django_tex = None
+
 
 if django_tex:
     
@@ -215,8 +214,12 @@ if django_tex:
         
         
         # currently unsupported, as django-tex uses settings.LATEX_INTERPRETER_OPTIONS
-        pdf_options = {}
-        preview_panel_pdf_options = {}
+        pdf_options = None
+        preview_pdf_options = None
+        preview_panel_pdf_options = None
+
+        preview = False
+        in_preview_panel = False
         
         
         def get_template_names(self):
@@ -240,7 +243,6 @@ if django_tex:
     class WagtailTexAdminView(AdminViewMixin, WagtailTexView):
         pass
 
-    
 
 """
 The default compiler options for weasyprint can be changed in the settings    
@@ -249,11 +251,14 @@ WAGTAIL_DEFAULT_PDF_OPTIONS = getattr(settings, 'WAGTAIL_DEFAULT_PDF_OPTIONS', {
     'pdf_forms': True
 })
 
+WAGTAIL_PREVIEW_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PDF_OPTIONS', None)
+WAGTAIL_PREVIEW_PDF_OPTIONS
 WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS', {
     'pdf_forms': False,
     'dpi': 50,
     'jpeg_quality': 30
 })
+
 
 class WagtailWeasyTemplateResponse(WeasyTemplateResponse):    
     
@@ -321,11 +326,45 @@ class WagtailWeasyTemplateResponse(WeasyTemplateResponse):
             
         return tmp
 
+
 class WagtailWeasyTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, WeasyTemplateResponseMixin):
     response_class = WagtailWeasyTemplateResponse
     
-    pdf_options = WAGTAIL_DEFAULT_PDF_OPTIONS
-    preview_panel_pdf_options = WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS
+    pdf_options = None
+    preview_pdf_options = None
+    preview_panel_pdf_options = None
+
+    preview = False
+    in_preview_panel = False
+
+
+    def get_pdf_options(self):
+        """
+        Specifies pdf options for weasyprint
+
+        The options are choosen based on whether the view is a (in panel) preview.
+        In-panel options are preferred to general preview options, normal options are the least preferred.
+        """
+
+        if self.in_preview_panel:
+            if self.preview_panel_pdf_options is not None:
+                return self.preview_panel_pdf_options
+
+            if WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS is not None:
+                return WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS
+
+        if self.preview:
+            if self.preview_pdf_options is not None:
+                return self.preview_pdf_options
+
+            if WAGTAIL_PREVIEW_PDF_OPTIONS is not None:
+                return WAGTAIL_PREVIEW_PDF_OPTIONS
+
+        if self.pdf_options is not None:
+            return self.pdf_options
+
+        return WAGTAIL_DEFAULT_PDF_OPTIONS or {}
+
     
     def get_pdf_stylesheets(self):
         # try to call get_stylesheets, otherwise get stylesheet attribute
@@ -335,6 +374,7 @@ class WagtailWeasyTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, 
             stylesheets = getattr(self.object, "stylesheets", [])
         
         return stylesheets
+
 
 @register_pdf_view('weasyprint')
 class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
