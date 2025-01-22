@@ -1,20 +1,21 @@
 
-
 from django.template.response import TemplateResponse
 from django.views.generic.base import ContextMixin, TemplateResponseMixin, View
 from django.views.generic.detail import SingleObjectMixin, BaseDetailView
-
+from django.urls import path
 from django.contrib.staticfiles.finders import find
-
 from django.conf import settings
-
 from django.core.exceptions import SuspiciousFileOperation
-
 from django.contrib.auth.mixins import PermissionRequiredMixin
 
+from wagtail.admin.views import generic
 from wagtail.admin.views.generic.permissions import PermissionCheckedMixin
+from wagtail.admin.views.generic.preview import PreviewOnCreate, PreviewOnEdit
+from wagtail.admin.ui.components import Component, MediaContainer
+from wagtail.admin.ui.side_panels import PreviewSidePanel
 from wagtail.permission_policies import ModelPermissionPolicy
-    
+from wagtail.models import PreviewableMixin
+
 import weasyprint
 
 from django_weasyprint.views import WeasyTemplateResponseMixin, WeasyTemplateResponse
@@ -252,7 +253,7 @@ WAGTAIL_DEFAULT_PDF_OPTIONS = getattr(settings, 'WAGTAIL_DEFAULT_PDF_OPTIONS', {
 })
 
 WAGTAIL_PREVIEW_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PDF_OPTIONS', None)
-WAGTAIL_PREVIEW_PDF_OPTIONS
+
 WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = getattr(settings, 'WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS', {
     'pdf_forms': False,
     'dpi': 50,
@@ -385,3 +386,112 @@ class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
 class WagtailWeasyAdminView(AdminViewMixin, WagtailWeasyView):
     pass
 
+
+class CreateView(generic.CreateEditViewOptionalFeaturesMixin, generic.CreateView):
+    """
+    Create view for previewable models
+    """
+    view_name = "create"
+
+    def get_side_panels(self):
+        side_panels = []
+
+        if self.preview_enabled and self.form.instance.is_previewable():
+            side_panels.append(
+                PreviewSidePanel(
+                    self.form.instance, self.request, preview_url=self.get_preview_url()
+                )
+            )
+        return MediaContainer(side_panels)
+
+
+class EditView(generic.CreateEditViewOptionalFeaturesMixin, generic.EditView):
+    """
+    Edit view for previewable models
+    """
+    view_name = "edit"
+
+    def get_side_panels(self):
+        side_panels = []
+
+        if self.preview_enabled and self.object.is_previewable():
+            side_panels.append(
+                PreviewSidePanel(
+                    self.object, self.request, preview_url=self.get_preview_url()
+                )
+            )
+        return MediaContainer(side_panels)
+
+
+class CopyView(generic.CopyViewMixin, CreateView):
+    pass
+
+
+class PreviewOnCreateView(PreviewOnCreate):
+    pass
+
+
+class PreviewOnEditView(PreviewOnEdit):
+    pass
+
+
+class PreviewableViewSetMixin:
+    """
+    Mixin for adding the preview functionality to viewsets
+    """
+
+    add_view_class = CreateView
+    edit_view_class = EditView
+    copy_view_class = CopyView
+
+    #: The view class to use for previewing on the create view
+    preview_on_add_view_class = PreviewOnCreateView
+
+    #: The view class to use for previewing on the edit view
+    preview_on_edit_view_class = PreviewOnEditView
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.preview_enabled = issubclass(self.model, PreviewableMixin)
+
+    def get_urlpatterns(self):
+        urlpatterns = []
+
+        if self.preview_enabled:
+            urlpatterns += [
+                path("preview/", self.preview_on_add_view, name="preview_on_add"),
+                path(
+                    "preview/<str:pk>/",
+                    self.preview_on_edit_view,
+                    name="preview_on_edit",
+                ),
+            ]
+
+        return super().get_urlpatterns() + urlpatterns
+
+    @property
+    def preview_on_add_view(self):
+        return self.construct_view(
+            self.preview_on_add_view_class,
+            form_class=self.get_form_class(),
+        )
+
+    @property
+    def preview_on_edit_view(self):
+        return self.construct_view(
+            self.preview_on_edit_view_class,
+            form_class=self.get_form_class(for_update=True),
+        )
+
+    def get_add_view_kwargs(self, **kwargs):
+        return super().get_add_view_kwargs(
+            preview_url_name=self.get_url_name("preview_on_add"),
+            **kwargs,
+        )
+
+    def get_edit_view_kwargs(self, **kwargs):
+        return super().get_edit_view_kwargs(
+            preview_url_name=self.get_url_name("preview_on_edit"),
+            **kwargs,
+        )
