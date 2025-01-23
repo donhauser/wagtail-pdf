@@ -48,7 +48,7 @@ class ConcreteSingleObjectMixin(SingleObjectMixin):
 
 class WagtailAdapterMixin(ContextMixin):
     """
-    Make a wagtail page accessible as template view.
+    Make a wagtail page or model accessible as template view.
     
     A wagtail page already provides a template name and context for rendering.
     This mixin makes the page rendering information available for the use with a plain
@@ -62,23 +62,39 @@ class WagtailAdapterMixin(ContextMixin):
             return self.template_name
         
         if hasattr(self.object, "get_template"):
-            return self.object.get_template(self.request, view_provider=self)
+            return self.object.get_template(self.request)
         
         # fallback
         return super().get_template_names()
     
     def get_context_data(self, **kwargs):
-        context = self.object.get_context(self.request, view_provider=self, **kwargs)
+        context = self.object.get_context(self.request, **kwargs)
         context.update(super().get_context_data(**kwargs))
         return context
     
     
 class PDFDetailView(BaseDetailView):
+
+    #: pdf content-disposition attachment state
+    attachment = None
+
+    def get_attachment(self):
+        """
+        Spefifies the content-disposition attachment state for the pdf response
+        """
+
+        if self.attachment is None:
+            return getattr(self.object, self.object.ATTACHMENT_VARIABLE, False)
+
+        return self.attachment
     
     def post_process_responce(self, request, response, **kwargs):
-        
+        """
+        Perform additional operations on the pdf response
+        """
+
         response['Content-Disposition'] = '{}filename="{}"'.format(
-            "attachment;" if getattr(self.object, self.object.ATTACHMENT_VARIABLE, False) else '',
+            "attachment;" if self.get_attachment() else '',
             self.object.get_pdf_filename(request, **kwargs)
         )
         
@@ -106,9 +122,9 @@ class AdminViewMixin(PermissionCheckedMixin):
     An adminpanel only view
     """
     
-    @property
-    def permission_policy(self):
-        return ModelPermissionPolicy(self.model)
+    #@property
+    #def permission_policy(self):
+    #    return ModelPermissionPolicy(self.model)
     
     permission_required = 'view'
 
@@ -217,7 +233,6 @@ if django_tex:
         content_type='application/pdf'
         response_class = TexTemplateResponse
         
-        
         # currently unsupported, as django-tex uses settings.LATEX_INTERPRETER_OPTIONS
         pdf_options = None
         preview_pdf_options = None
@@ -226,7 +241,6 @@ if django_tex:
         preview = False
         in_preview_panel = False
         
-        
         def get_template_names(self):
             
             # possibility to override template
@@ -234,7 +248,7 @@ if django_tex:
                 return self.template_name
             
             if hasattr(self.object, "get_template"):
-                return self.object.get_template(self.request, view_provider=self, extension="tex")
+                return self.object.get_template(self.request, extension="tex")
             
             # fallback
             return super().get_template_names()

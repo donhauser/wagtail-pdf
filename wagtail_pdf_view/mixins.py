@@ -327,28 +327,13 @@ class BasePreviewablePdfMixin(BasePdfMixin, MultiplePreviewMixin):
         return response
 
 
-# TODO improve/clean up
 class PdfModelMixin(BasePreviewablePdfMixin, PreviewableMixin):
-    TEMPLATE_ATTRIBUTE = 'template_name'
-    ADMIN_TEMPLATE_ATTRIBUTE = 'admin_template_name'
 
-    def get_context(self, *args, **kwargs):
+    def get_context(self, request, **kwargs):
         return {}
 
-    # TODO context=... for block
-    def get_template(self, request, *args, extension=None, view_provider=None, **kwargs):
-
-        if isinstance(view_provider, AdminViewMixin):
-            template_attr = self.ADMIN_TEMPLATE_ATTRIBUTE
-        else:
-            template_attr = self.TEMPLATE_ATTRIBUTE
-
-        try:
-            return getattr(self, template_attr)
-        except AttributeError:
-            raise AttributeError("Template attribute not found for model {}. "
-                                 "Try to add {}='path/to/your/template_file' to {}".format(self._meta.model_name, template_attr, self._meta.model_name)
-                                 )
+    def get_template(self, request, extension=None):
+        return self.template_name
 
 
     # you can implement Page.attachment to control the Content-Disposition attachment
