@@ -31,6 +31,7 @@ def route_function(func, pattern, *args, **kwargs):
 
 PDF_VIEWER = getattr(settings, 'WAGTAIL_PDF_VIEWER', {
     'name': 'pdf.js',
+    'app_name': 'wagtail_pdf_view',
     'args': ['web/viewer.html'],
     'query': 'file',
     'route': r'^static/pdf.js/(?P<path>.*)$',
@@ -44,10 +45,12 @@ def get_pdf_viewer_url(path, viewer=None):
     if viewer is None:
         viewer = PDF_VIEWER
     
+    url_name = viewer['app_name']+':'+viewer['name']
+
     try:
-        url = reverse(viewer['name'], args=viewer['args'])
+        url = reverse(url_name, args=viewer['args'])
     except NoReverseMatch as e:
-        logger.error(f"Failed to reverse the url of the pdf viewer {viewer['name']}. Make sure that you've added `wagtail_pdf_view.urls` to the project `urlpatterns` or reconfigure `settings.WAGTAIL_PDF_VIEWER`")
+        logger.error(f"Failed to reverse the url of the pdf viewer '{url_name}'. Make sure that you've added `include('wagtail_pdf_view.urls')` to the project `urlpatterns` or reconfigure `settings.WAGTAIL_PDF_VIEWER`")
         raise e
     
     quoted_path = urllib.parse.quote(path)

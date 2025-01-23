@@ -16,6 +16,7 @@ from .utils import PDF_VIEWER
 def serve_sameorigin(*args, **kwargs):
     return serve(*args, **kwargs)
 
+app_name = 'wagtail_pdf_view'
 
 urlpatterns = []
 
