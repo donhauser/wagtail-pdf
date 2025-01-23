@@ -2,15 +2,19 @@
 from django.template.response import TemplateResponse
 from django.views.generic.base import ContextMixin, TemplateResponseMixin, View
 from django.views.generic.detail import SingleObjectMixin, BaseDetailView
-from django.urls import path
+from django.urls import path,reverse
+from django.urls.exceptions import NoReverseMatch
+from django.utils.translation import gettext as _
 from django.contrib.staticfiles.finders import find
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
+from django.contrib.admin.utils import quote
 from django.contrib.auth.mixins import PermissionRequiredMixin
 
 from wagtail.admin.views import generic
 from wagtail.admin.views.generic.permissions import PermissionCheckedMixin
 from wagtail.admin.views.generic.preview import PreviewOnCreate, PreviewOnEdit
+from wagtail.admin.widgets.button import ListingButton
 from wagtail.admin.ui.components import Component, MediaContainer
 from wagtail.admin.ui.side_panels import PreviewSidePanel
 from wagtail.permission_policies import ModelPermissionPolicy
@@ -495,3 +499,43 @@ class PreviewableViewSetMixin:
             preview_url_name=self.get_url_name("preview_on_edit"),
             **kwargs,
         )
+
+
+class LiveIndexViewMixin:
+    live_app_name = 'wagtail_pdf_view'
+
+    def get_live_url(self, instance):
+        try:
+            name = f"{self.model._meta.app_label}.{self.model._meta.object_name}"
+
+            if self.live_app_name:
+                name = self.live_app_name+":"+name
+
+            return reverse(name, args=(quote(instance.pk),))
+        except NoReverseMatch:
+            return ''
+
+    def get_list_more_buttons(self, instance):
+        buttons = super().get_list_more_buttons(instance)
+
+        if live_url := self.get_live_url(instance):
+            b = ListingButton(
+                _("View live"),
+                url=live_url,
+                icon_name="doc-empty",
+                attrs={
+                    "aria-label": _("Open PDF '%(title)s'") % {"title": str(instance)}
+                },
+                priority=15,
+            )
+            buttons.append(b)
+
+        return buttons
+
+
+class LiveIndexView(LiveIndexViewMixin, generic.IndexView):
+    pass
+
+
+class PdfViewSetMixin(PreviewableViewSetMixin):
+    index_view_class = LiveIndexView
