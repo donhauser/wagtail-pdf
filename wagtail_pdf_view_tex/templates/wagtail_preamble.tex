@@ -54,7 +54,8 @@
 % Include django-tex graphicspath handling
 {% graphicspath %}
 
-
+{% if page is defined %}
 \title{ {{-page.title-}} }
+{% endif %}
 
 

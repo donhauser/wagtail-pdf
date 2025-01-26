@@ -21,11 +21,6 @@ BASE_DIR = os.path.dirname(PROJECT_DIR)
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
-try:
-    import django_tex
-except ImportError:
-    django_tex = None
-
 # Allow local import of wagtail_pdf_view for development
 sys.path.append(os.path.dirname(BASE_DIR))
 
@@ -65,8 +60,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-if django_tex:
-    INSTALLED_APPS += ['django_tex']
 
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -100,19 +93,29 @@ TEMPLATES = [
     },
 ]
 
-if django_tex:
+try:
+    import django_tex
+
+    INSTALLED_APPS += [
+        'wagtail_pdf_view_tex',
+        'django_tex',
+    ]
+
     TEMPLATES += [
         {
             'NAME': 'tex',
             'BACKEND': 'django_tex.engine.TeXEngine', 
             'APP_DIRS': True,
             'OPTIONS': {
-                'environment': 'wagtail_pdf_view.environment.latex_environment',
+                'environment': 'wagtail_pdf_view_tex.environment.latex_environment',
             },
         },
     ]
 
-    #LATEX_GRAPHICSPATH = ['custom/latex/image/path'] # TODO if django tex
+    #LATEX_GRAPHICSPATH = ['custom/latex/image/path']
+
+except ImportError:
+    pass
 
 WSGI_APPLICATION = 'demo.wsgi.application'
 
@@ -185,17 +188,11 @@ MEDIA_URL = '/media/'
 
 
 # Wagtail settings
-
 WAGTAIL_SITE_NAME = "demo"
 
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
 BASE_URL = 'http://example.com'
-
-# using LaTex
-#WAGTAIL_PDF_VIEW = "django-tex"
-#WAGTAIL_PDF_ADMIN_VIEW = "django-tex"
-#LATEX_INTERPRETER = 'pdflatex'
 
 # disable the usage of pdf.js in the preview panel (this can cause CORS issues e.g. on firefox)
 #WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = ""

@@ -24,11 +24,14 @@ setuptools.setup(
     author='Jonas Donhauser',
     #author_email='',
     url='https://github.com/donhauser/wagtail-pdf',
-    packages=['wagtail_pdf_view'],
+    packages=[
+        'wagtail_pdf_view',
+        'wagtail_pdf_view_tex',
+    ],
     package_data={
         '': ['LICENSE']
-        + package_files('wagtail_pdf_view/templates')
         + package_files('wagtail_pdf_view/static')
+        + package_files('wagtail_pdf_view_tex/templates')
     },
     include_package_data=True,
     python_requires=">=3.8",

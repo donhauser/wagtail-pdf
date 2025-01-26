@@ -13,6 +13,7 @@ from wagtail.admin.panels import FieldPanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 
+#from wagtail_pdf_view_tex.views import WagtailTexView
 
 from django.conf import settings
 
@@ -23,6 +24,7 @@ class DemoModel(PdfModelMixin, models.Model):
     
     # disable pdf options
     #preview_panel_pdf_options = {'pdf_forms': True}
+
     
     creation_date = models.DateField(default=datetime.now)
     
@@ -38,8 +40,13 @@ class DemoModel(PdfModelMixin, models.Model):
         FieldPanel("author"),
         FieldPanel("content"),
     ]
+
+    # Change the view class to render the view using latex
+    #pdf_view_class = WagtailTexView
     
     template_name = "home/demo_model.html"
+    #template_name = "home/demo_model.tex"
+
     
     # Alternative: Override the get_template() method
     # def get_template(self, request, *args, extension=None, **kwargs):
@@ -52,8 +59,8 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     
     #pdf_options = {'dpi': 20}
     
-    ## render with LaTeX instead
-    # pdf_view_class = WagtailTexView
+    # Change the view class to render the view using latex
+    #pdf_view_class = WagtailTexView
     
     creation_date = models.DateField(default=datetime.now)
     
@@ -80,7 +87,6 @@ class SimplePdfPage(PdfViewPageMixin, Page):
 
     
 class HtmlAndPdfPage(PdfViewPageMixin, Page):
-    
     
     # Set the browsers attachment handling
     attachment = models.BooleanField(help_text="Download the .pdf file instead of displaying it in the browser", default=False)

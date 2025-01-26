@@ -117,140 +117,6 @@ class PDFDetailView(BaseDetailView):
         return self.get(self, request, *args, **kwargs)
 
 
-PDF_VIEWS = {}
-PDF_ADMIN_VIEWS = {}
-
-
-def register_pdf_view(name):
-    """
-    Register the decorated class as pdf view under the given name
-    """
-    
-    def decorator(cls):
-        
-        if name in PDF_VIEWS:
-            raise ValueError(f"A pdf view with the name '{name}' is already registered")
-        
-        if not issubclass(cls, PDFDetailView):
-            raise ValueError(f"The registered pdf view class '{cls.__name__}' must inherit from PDFDetailView")
-        
-        PDF_VIEWS[name] = cls
-        
-        return cls
-    return decorator
-
-
-def register_pdf_admin_view(name):
-    """
-    Register the decorated class as pdf admin view under the given name
-    """
-    
-    def decorator(cls):
-        
-        if name in PDF_ADMIN_VIEWS:
-            raise ValueError(f"A pdf admin view with the name '{name}' is already registered")
-        
-        if not issubclass(cls, PDFDetailView):
-            raise ValueError(f"The registered pdf admin view class '{cls.__name__}' must inherit from PDFDetailView")
-        
-        PDF_ADMIN_VIEWS[name] = cls
-        
-        return cls
-    return decorator
-
-
-def get_pdf_view(name=None):
-    """
-    Get the pdf view class (e.g. WagtailWeasyView) which is associated with the given name
-    
-    If no name is given, this method default to either settings.WAGTAIL_PDF_VIEW or 'weasyprint' as fallback.
-    """
-    
-    if name is None:
-        name = getattr(settings, 'WAGTAIL_PDF_VIEW', 'weasyprint')
-    
-    try: 
-        return PDF_VIEWS[name]
-    except KeyError:
-        raise ValueError(f"No such pdf view '{name}', did you forget to use @register_pdf_view('{name}') ?")
-    
-    
-def get_pdf_admin_view(name=None):
-    """
-    Get the pdf admin view class (e.g. WagtailWeasyAdminView) which is associated with the given name
-    
-    If no name is given, this method default to either settings.WAGTAIL_PDF_ADMIN_VIEW or 'weasyprint' as fallback.
-    """
-    
-    if name is None:
-        name = getattr(settings, 'WAGTAIL_PDF_ADMIN_VIEW', 'weasyprint')
-        
-    try: 
-        return PDF_ADMIN_VIEWS[name]
-    except KeyError:
-        raise ValueError(f"No such pdf view '{name}', did you forget to use @register_pdf_admin_view('{name}') ?")
-
-
-try:
-    import django_tex
-except ImportError:
-    django_tex = None
-
-
-if django_tex:
-    
-    from django_tex.core import compile_template_to_pdf
-
-    class TexTemplateResponse(TemplateResponse):
-        
-        @property
-        def rendered_content(self):
-            """
-            Returns rendered PDF pages.
-            """
-            
-            context = self.resolve_context(self.context_data)
-            
-            return compile_template_to_pdf(self.template_name, context)
-
-
-    class WagtailTexTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, TemplateResponseMixin):
-        """
-        Provide the latex compiler (from django-tex) as view
-        """
-        content_type='application/pdf'
-        response_class = TexTemplateResponse
-        
-        # currently unsupported, as django-tex uses settings.LATEX_INTERPRETER_OPTIONS
-        pdf_options = None
-        preview_pdf_options = None
-        preview_panel_pdf_options = None
-
-        preview = False
-        in_preview_panel = False
-        
-        def get_template_names(self):
-            
-            # possibility to override template
-            if self.template_name:
-                return self.template_name
-            
-            if hasattr(self.object, "get_template"):
-                return self.object.get_template(self.request, extension="tex")
-            
-            # fallback
-            return super().get_template_names()
-
-
-    @register_pdf_view('django-tex')
-    class WagtailTexView(WagtailTexTemplateMixin, PDFDetailView):
-        pass
-
-    @register_pdf_admin_view('django-tex')
-    class WagtailTexAdminView(WagtailTexView):
-        permission_required = 'view'
-
-
 """
 The default compiler options for weasyprint can be changed in the settings    
 """
@@ -383,12 +249,10 @@ class WagtailWeasyTemplateMixin(WagtailAdapterMixin, ConcreteSingleObjectMixin, 
         return stylesheets
 
 
-@register_pdf_view('weasyprint')
 class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
     pass
     
 
-@register_pdf_admin_view('weasyprint')
 class WagtailWeasyAdminView(WagtailWeasyView):
     permission_required = 'view'
 
@@ -584,7 +448,7 @@ class PdfAdminViewSetMixin:
 
     index_view_class = PdfAdminIndexView
 
-    pdf_view_class = get_pdf_admin_view()
+    pdf_view_class = WagtailWeasyView
 
     pdf_options = None
     pdf_attachment = None

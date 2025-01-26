@@ -15,7 +15,7 @@ from wagtail.models import Page, PreviewableMixin
 
 from .utils import route_function, get_pdf_viewer_url
 
-from .views import get_pdf_view
+from .views import WagtailWeasyView
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +190,7 @@ class BasePdfMixin:
     # you can implement Page.attachment to control the Content-Disposition attachment
     ATTACHMENT_VARIABLE = "attachment"
     
-    pdf_view_class = get_pdf_view()
+    pdf_view_class = WagtailWeasyView
     
     # Slugifies the document title if enabled
     pdf_slugify_document_name = True
@@ -233,7 +233,7 @@ class BasePreviewablePdfMixin(BasePdfMixin, MultiplePreviewMixin):
     A mixin for serving the preview of a wagtail objects as '.pdf'
     """
 
-    preview_pdf_view_class = get_pdf_view()
+    preview_pdf_view_class = None
 
     def get_preview_modes(self):
         """
@@ -263,13 +263,13 @@ class BasePreviewablePdfMixin(BasePdfMixin, MultiplePreviewMixin):
 
     @property
     def preview_pdf_view(self):
-
-        return self.preview_pdf_view_class.as_view(**self.get_preview_pdf_view_kwargs(False))
+        view_class = self.preview_pdf_view_class or self.pdf_view_class
+        return view_class.as_view(**self.get_preview_pdf_view_kwargs(False))
 
     @property
     def preview_panel_pdf_view(self):
-
-        return self.preview_pdf_view_class.as_view(**self.get_preview_pdf_view_kwargs(True))
+        view_class = self.preview_pdf_view_class or self.pdf_view_class
+        return view_class.as_view(**self.get_preview_pdf_view_kwargs(True))
     
     def make_in_preview_panel_request(self, original_request):
         """
@@ -315,7 +315,7 @@ class BasePreviewablePdfMixin(BasePdfMixin, MultiplePreviewMixin):
         """
 
         if request.original_request and not request.original_request.GET.get('in_preview_panel'):
-            view = self.pdf_view#preview_pdf_view
+            view = self.preview_pdf_view
         else:
             view = self.preview_panel_pdf_view
         
@@ -356,15 +356,6 @@ class PdfViewPageMixin(BasePreviewablePdfMixin, MultipleViewPageMixin):
 
     This works by rerouting the pages sub-url (example.com/path/to/page/<sub-url>) with
     wagtails routable pages and rendering it with a custom pdf view.
-
-    For this to work you have to ensure that you've installed 'WeasyPrint'.
-    Alternatively you can also use 'django-tex' (make sure that you have 'luatex' installed)
-    and either implement
-    >    pdf_view_class = DjangoTexProvider
-    in your page model, or add
-    >    WAGTAIL_PDF_VIEW = 'django-tex'
-    >    # WAGTAIL_PDF_ADMIN_VIEW = 'django-tex' # if you want to use model admin as well
-    to your projects settings.
 
     By default only the pdf view is available, i.e. you may only view this page as pdf.
     This may be changed by reimplementing ROUTE_CONFIG, e.g.
