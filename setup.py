@@ -2,6 +2,7 @@ import setuptools
 
 import os
 
+
 directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
@@ -16,7 +17,7 @@ def package_files(directory):
 
 setuptools.setup(
     name='wagtail-pdf-view',
-    version='1.0.0',
+    version='1.1.0',
     description='PDF rendering views for the Wagtail CMS',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -48,8 +49,7 @@ setuptools.setup(
         "Framework :: Django :: 5.0",
         "Framework :: Django :: 5.1",
         "Framework :: Wagtail",
-        "Framework :: Wagtail :: 4",
-        "Framework :: Wagtail :: 5",
+        "Framework :: Wagtail :: 6",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
