@@ -6,24 +6,18 @@ from wagtail.admin import urls as wagtailadmin_urls
 from wagtail import urls as wagtail_urls
 from wagtail.documents import urls as wagtaildocs_urls
 
-from wagtail_pdf_view import urls as wagtail_pdf_urls
-
-from search import views as search_views
-
-
 from django.urls import re_path
 
 from home import models
 
 from django.views.static import serve
 
+
 urlpatterns = [
     path('django-admin/', admin.site.urls),
 
     path('admin/', include(wagtailadmin_urls)),
     path('documents/', include(wagtaildocs_urls)),
-
-    path('search/', search_views.search, name='search'),
 
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
@@ -38,9 +32,8 @@ if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-
 urlpatterns = urlpatterns + [
-    path("pdf/", include(wagtail_pdf_urls)),
+    path("pdf/", include('wagtail_pdf_view.urls')),
     # For anything not caught by a more specific rule above, hand over to
     # Wagtail's page serving mechanism. This should be the last pattern in
     # the list:

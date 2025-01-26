@@ -33,7 +33,6 @@ sys.path.append(os.path.dirname(BASE_DIR))
 
 INSTALLED_APPS = [
     'home',
-    'search',
     
     'report', # Weasyprint demos
     'invoice',
@@ -52,8 +51,6 @@ INSTALLED_APPS = [
     'wagtail.admin',
     'wagtail',
     
-    
-    'wagtail.contrib.modeladmin',
     'wagtail.contrib.routable_page',
     'wagtail.contrib.table_block',
 
@@ -198,6 +195,7 @@ BASE_URL = 'http://example.com'
 # using LaTex
 #WAGTAIL_PDF_VIEW = "django-tex"
 #WAGTAIL_PDF_ADMIN_VIEW = "django-tex"
+#LATEX_INTERPRETER = 'pdflatex'
 
 # disable the usage of pdf.js in the preview panel (this can cause CORS issues e.g. on firefox)
 #WAGTAIL_IN_PREVIEW_PANEL_PDF_URL = ""
@@ -210,7 +208,7 @@ BASE_URL = 'http://example.com'
 
 # set the compiler options for weasyprint when rendering inside the preview panel
 #WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {'pdf_forms': True}
-#WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {}
+#WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = None
 
 # disable pdf.js as in panel pdf preview
 #WAGTAIL_PDF_VIEWER = {}
