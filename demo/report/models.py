@@ -68,10 +68,6 @@ class ReportPage(PdfViewPageMixin, Page):
     ## render with LaTeX instead
     # pdf_view_class = WagtailTexView
     
-    ## Add a custom view provider or method
-    #def get_pdf_view(self):
-    #    return WagtailTexView(self).serve
-    
     #creation_date = models.DateField(default=datetime.now)
     
     #author = models.CharField(max_length=200)

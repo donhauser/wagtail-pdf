@@ -18,17 +18,11 @@ from django.conf import settings
 
 
 class DemoModel(PdfModelMixin, models.Model):
+    # pdf response attachment state. The file will be downloaded by clicking 'view pdf' if 'true'
     #attachment = True
     
-    # use weasyprint compiler options to enable forms for the live/user view
-    pdf_options = {
-        'pdf_forms': True
-    }
-    
-    #  use weasyprint compiler options to disable forms in the admin panel
-    admin_pdf_options = {
-        'pdf_forms': False
-    }
+    # disable pdf options
+    #preview_panel_pdf_options = {'pdf_forms': True}
     
     creation_date = models.DateField(default=datetime.now)
     
@@ -46,17 +40,10 @@ class DemoModel(PdfModelMixin, models.Model):
     ]
     
     template_name = "home/demo_model.html"
-    admin_template_name = "home/demo_model_admin.html"
     
     # Alternative: Override the get_template() method
     # def get_template(self, request, *args, extension=None, **kwargs):
     #     return "home/demo_model.html"
-    
-    class Meta:
-        permissions = (
-            # IT IS IMPORTANT TO APPEND '_modelname'
-            ('can_view_pdf'+'_demomodel', 'can view the demo model pdf'),
-        )
 
 
 class SimplePdfPage(PdfViewPageMixin, Page):
@@ -67,10 +54,6 @@ class SimplePdfPage(PdfViewPageMixin, Page):
     
     ## render with LaTeX instead
     # pdf_view_class = WagtailTexView
-    
-    ## Add a custom view provider or method
-    #def get_pdf_view(self):
-    #    return WagtailTexView(self).serve
     
     creation_date = models.DateField(default=datetime.now)
     
@@ -113,7 +96,7 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
         ("html", r'^$'),
         ("pdf", r'^pdf/$'),
     ]
-    
+
     ## You can rename the default preview modes
     # preview_modes = [
     #    ("pdf", "My Pdf Preview"),

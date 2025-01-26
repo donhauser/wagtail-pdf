@@ -17,6 +17,7 @@ from wagtail_pdf_view.mixins import PdfViewPageMixin, PdfModelMixin
 
 import uuid
 
+
 class Invoice(PdfModelMixin, ClusterableModel):
     #attachment = True
     
@@ -70,6 +71,7 @@ class Invoice(PdfModelMixin, ClusterableModel):
     
     def __str__(self):
         return f"Invoice #{self.number}"
+
 
 class InvoiceItem(models.Model):
     
