@@ -553,3 +553,96 @@ class LiveIndexView(LiveIndexViewMixin, generic.IndexView):
 
 class PdfViewSetMixin(PreviewableViewSetMixin):
     index_view_class = LiveIndexView
+
+
+class PdfAdminIndexView(LiveIndexViewMixin, generic.IndexView):
+    """
+    IndexView for ViewSets with an 'Open PDF' button
+    """
+
+    pdf_url_name = None
+
+    def get_pdf_url(self, instance):
+        if not self.pdf_url_name:
+            raise ImproperlyConfigured( # TODO proper warning
+                "Subclasses of PdfAdminIndexView must provide an "
+                "pdf_url_name attribute or a get_pdf_url method"
+            )
+        return reverse(self.pdf_url_name, args=(quote(instance.pk),))
+
+    def get_list_buttons(self, instance):
+        buttons = super().get_list_buttons(instance)
+
+        if pdf_url := self.get_pdf_url(instance):
+            b = ListingButton(
+                _("View pdf"),
+                url=pdf_url,
+                icon_name="doc-full",
+                attrs={
+                    "aria-label": _("Open PDF '%(title)s'") % {"title": str(instance)}
+                },
+                priority=10,
+            )
+
+            buttons.append(b)
+
+        return buttons
+
+
+class PdfAdminViewSetMixin:
+    """
+    Makes a model accessible as PDF for admin panel users
+    """
+
+    index_view_class = PdfAdminIndexView
+
+    pdf_view_class = get_pdf_admin_view()
+
+    pdf_options = None
+    pdf_attachment = None
+    pdf_template_name = None
+
+    def get_urlpatterns(self):
+        urlpatterns = [
+            path("pdf/<str:pk>/", self.pdf_view, name="pdf"),
+        ]
+
+        return super().get_urlpatterns() + urlpatterns
+
+    def get_index_view_kwargs(self, **kwargs):
+        url_map = {
+            "pdf_url_name": self.get_url_name("pdf"),
+        }
+
+        return super().get_index_view_kwargs(**url_map, **kwargs)
+
+    def get_pdf_view_kwargs(self, **kwargs):
+
+        options = {}
+
+        if self.pdf_options is not None:
+            options['pdf_options'] = self.pdf_options
+
+        if self.pdf_attachment is not None:
+            options['attachment'] = self.pdf_attachment
+
+        if self.pdf_template_name is not None:
+            options['template_name'] = self.pdf_template_name
+
+        return {
+            **options,
+            **kwargs
+        }
+
+    @property
+    def pdf_view(self):
+        """
+        Serve an admin pdf view for a given instance
+
+        The kwargs may be used to pass template_name="path/to/custom/template" or
+        to change the view permissions with permission_required="some permission".
+        Passing permission_required=None disables the permission system.
+        (Access to /admin is still needed)
+        """
+
+        return self.construct_view(self.pdf_view_class, **self.get_pdf_view_kwargs())
