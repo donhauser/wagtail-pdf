@@ -117,18 +117,6 @@ class PDFDetailView(BaseDetailView):
         return self.get(self, request, *args, **kwargs)
 
 
-class AdminViewMixin(PermissionCheckedMixin):
-    """
-    An adminpanel only view
-    """
-    
-    #@property
-    #def permission_policy(self):
-    #    return ModelPermissionPolicy(self.model)
-    
-    permission_required = 'view'
-
-
 PDF_VIEWS = {}
 PDF_ADMIN_VIEWS = {}
 
@@ -259,8 +247,8 @@ if django_tex:
         pass
 
     @register_pdf_admin_view('django-tex')
-    class WagtailTexAdminView(AdminViewMixin, WagtailTexView):
-        pass
+    class WagtailTexAdminView(WagtailTexView):
+        permission_required = 'view'
 
 
 """
@@ -401,8 +389,8 @@ class WagtailWeasyView(WagtailWeasyTemplateMixin, PDFDetailView):
     
 
 @register_pdf_admin_view('weasyprint')
-class WagtailWeasyAdminView(AdminViewMixin, WagtailWeasyView):
-    pass
+class WagtailWeasyAdminView(WagtailWeasyView):
+    permission_required = 'view'
 
 
 class CreateView(generic.CreateEditViewOptionalFeaturesMixin, generic.CreateView):

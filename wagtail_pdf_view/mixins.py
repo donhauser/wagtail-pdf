@@ -15,7 +15,7 @@ from wagtail.models import Page, PreviewableMixin
 
 from .utils import route_function, get_pdf_viewer_url
 
-from .views import get_pdf_view, AdminViewMixin
+from .views import get_pdf_view
 
 logger = logging.getLogger(__name__)
 
