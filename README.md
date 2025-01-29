@@ -33,17 +33,15 @@ INSTALLED_APPS = [
 # WEASYPRINT_BASEURL = '/'
 ```
 
-Furthermore, you need to hook in `wagtail_pdf_urls` into your projects `urls.py`:
+Furthermore, you need to hook in `wagtail_pdf_view.urls` into your projects `urls.py`:
 
 
 ```py
 # urls.py
 
-from wagtail_pdf_view import urls as wagtail_pdf_urls
-
 urlpatterns = urlpatterns + [
     # hook in the 'live'-view PDFs under "pdf/"
-    path("pdf/", include(wagtail_pdf_urls)),
+    path("pdf/", include('wagtail_pdf_view.urls')),
     ...
     # IMPORTANT: This must be below the "pdf/" include
     path("", include(wagtail_urls)),
@@ -68,7 +66,7 @@ a working latex interpreter (lualatex) must be installed on your system if you w
 Please follow the "Using LaTeX" instructions below.
 
 
-## Usage
+## Usage for Pages
 
 All you need to do to render your Wagtail `Page` as PDF, is to inherit from `PdfViewPageMixin`.
 If you want to render a model instead, read the section **ModelAdmin** below.
@@ -78,7 +76,7 @@ If you want to render a model instead, read the section **ModelAdmin** below.
 A page inheriting from `PdfViewPageMixin` can be further configured with the options:
 - `ROUTE_CONFIG` to enable rendering of the default HTML view and the PDF view at the same time
 - `stylesheets` resp. `get_stylesheets` to include CSS stylesheets for [weasyprint](https://github.com/Kozea/WeasyPrint)
-- `pdf_options` and `preview_panel_pdf_options` to change the compilation options of weasyprint for the page (and in panel preview respectively)
+- `pdf_options`, `preview_pdf_options`, and `preview_panel_pdf_options` to change the compilation options of weasyprint for the page, the preview and the in panel preview respectively
 - `attachment` to control the file attachment (i.e. whether to download the PDF or open it in the browser)
 
 ## Examples
@@ -219,7 +217,19 @@ In python code `Page.reverse_subpage()` can be used to reverse a HTML-first page
 page.reverse_subpage('pdf')
 ```
 
-## ModelAdmin
+## Usage with Models and ModelViewSet
+
+Besides pages, it is also possible to render models as PDF.
+
+### Migrating Legacy ModelAdmin Code
+
+Wagtail 6 dropped support for ModelAdmin, thus the following adaptions need to be made:
+
+- Substitude `modeladmin.mixins.ModelAdminPdfViewMixin` by `view.PdfViewSetMixin`. Add view with the `@register_pdf_view` decorator if you desire to make the PDF public.
+- Replace `modeladmin.mixins.ModelAdminPdfAdminViewMixin` with `views.PdfAdminViewSetMixin`
+- The attribute `YourModel.admin_template_name` was removed, declare `YourViewSet.template_name` instead
+
+### PDF rendering for models
 
 To enable model rendering, your model must inherit from `PdfModelMixin`:
 
@@ -233,150 +243,130 @@ class YourPdfModel(PdfModelMixin, models.Model):
     # the admin view uses a different template attribute to
     # prevent you from publishing sensitive content by accident
     
-    # template for non-admin view
     template_name = "path/to/your_model.html"
-    # template for admin 
-    admin_template_name = "path/to/your_model_admin.html"
 ```
 
+This will add rendering methods like `serve()` to your model and will make the model furthermore previewable by adding `serve_preview()`.
 
-Unlike for PDF-Pages where everything is done in the Page-model, the hooks for `ModelAdmin` need to be extended:
-By inheriting from `ModelAdminPdfViewMixin` or `ModelAdminPdfAdminViewMixin` you
-automatically make the model accessible through a live url or through the admin panel respectively.
+### Serving a model as live view
 
-If you dont want to use `ModelAdmin` you may also add a view for the model manually.
-
-
-### View configuration with ModelAdmin
-
-
-To make incorporating PDF-views as simple as possible, this module offers two different `ModelAdmin` mixins.
-This separation should make it easy to choose a view to according to your security needs:
-- `ModelAdminPdfViewMixin`: Create a live/public view for a non-sensitive public model, which is accessible for everybody through an url
-- `ModelAdminPdfAdminViewMixin` Create an admin restricted view for the model, which is only accessible to users with `view` permissions on the model.
- 
+If you want `YourPdfModel` to be accessible on the (live) website, a view must be specified to expose PDF-renderable models, as this is not done automatically.
 
 ```py
-# wagtail_hooks.py
+#views.py
 
-from wagtail.contrib.modeladmin.options import ModelAdmin, modeladmin_register
+from wagtail_pdf_view.views import WagtailWeasyView
+from wagtail_pdf_view.hooks import register_pdf_view
 
 from .models import YourPdfModel
 
 
-# OPTION 1)
-# Creating a live/public view model (accessible for everybody through a url)
-
-from wagtail_pdf_view.modeladmin.mixins import ModelAdminPdfViewMixin
-
-@modeladmin_register
-class YourPdfModelWagtailAdmin(ModelAdminPdfViewMixin, ModelAdmin):
+# by default the view is registered under 'pdf' i.e. 'pdf/some/path/<..>'
+# with the name 'wagtail_pdf_view:<app_label>.<object_name>'
+@register_pdf_view('some/path/<str:pk>/')
+class YourPdfModelView(WagtailWeasyView):
     model = YourPdfModel
-
-    
-# OPTION 2)
-# Creating admin-restricted view model
-
-from wagtail_pdf_view.modeladmin.mixins import ModelAdminPdfAdminViewMixin
-
-@modeladmin_register
-class YourPdfModelWagtailAdmin(ModelAdminPdfAdminViewMixin, ModelAdmin):
-    model = YourPdfModel
-    
 ```
 
-### Model URL configuration without ModelAdmin
+Sub-classing `WagtailWeasyView` provides required functionality for PDF-rendering capable models.
+By using the optional decorator `register_pdf_view(url)`, the specified model url is registered under `wagtail_pdf_view.urls`.
 
-This is an example how you can hook in the models PDF-view manually (without using `ModelAdmin`).
+
+### ViewSet configuration
+
+As described above, models that inherit from `PdfModelMixin` are renderable and previewable. To adapt to those additional functionalities, simply adjust your `ModelViewSet` to inherit from `PdfViewSetMixin`.
 
 ```py
-# urls.py
+#views.py
 
-# This will be either WagtailWeasyView or WagtailTexView depending on your installation
-# The view returned by get_pdf_admin_view will furthermore check whether the permission 'view' is set.
-from wagtail_pdf_view.views import get_pdf_view, get_pdf_admin_view
+from wagtail.admin.viewsets.model import ModelViewSet
+
+from wagtail_pdf_view.views import PdfViewSetMixin
+
+from .models import Invoice
+
+
+class YourPdfModelViewSet(PdfViewSetMixin, ModelViewSet):
+    add_to_admin_menu = True
+    model = YourPdfModel
+    menu_label = 'Your Model'
+    icon = 'cog'
+
+    name = 'yourmodel'
+```
+
+In some scenarios, it is not desired to expose a PDF to the public.
+To ease such cases, `PdfAdminViewSetMixin` exists as variant of `PdfViewSetMixin`.
+Besides the preview functionallity, `PdfAdminViewSetMixin` also adds a `pdf_view_class` to the `ViewSet`, which is accessible through a _view pdf_ button.
+
+
+```py
+#views.py
+
+from wagtail.admin.viewsets.model import ModelViewSet
+
+from wagtail_pdf_view.views import PdfAdminViewSetMixin
+
+from .models import Invoice
+
+
+class YourPdfModelViewSet(PdfAdminViewSetMixin, ModelViewSet):
+    add_to_admin_menu = True
+    model = YourPdfModel
+    menu_label = 'Your Model'
+    icon = 'cog'
+
+    name = 'yourmodel'
+    
+    ## PDF settings for the admin view, i.e. 'view pdf'
+    
+    ## Change the view class to render the view using latex
+    #pdf_view_class = WagtailTexAdminView
+    ## Set the pdf options for weasyprint e.g. to disable forms
+    #pdf_options = {...}
+    ## Set the attachment to download the PDF instead of opening
+    #pdf_attachment = True
+    ## Custom template
+    #pdf_template_name = "path/to/your/template.html"
+```
+
+Changing or adding new buttons is possible by specifying a custom `index_view_class`.
+
+### Custom model url registration
+
+It is also possible to directly specify a model's url pattern instead of using `register_pdf_view()`.
+Using `wagtail_pdf_view:<app_label>.<object_name>` as name is recommended to preserve url-revering dependent functionalities like _"view live"_.
+
+```py
+#urls.py
+
+from wagtail_pdf_view.views import WagtailWeasyView
 
 from .models import YourPdfModel
 
+# register a pdf view for YourPdfModel
 urlpatterns = [
-    ...
-    # URL path for the DetailView with primary key pk
-    re_path(r'^some/path/(?P<pk>\d+)/$',  get_pdf_view().as_view(model=YourPdfModel)), # default pdf view
-    re_path(r'^some/custom/path/(?P<pk>\d+)/$',  get_pdf_view('custom-name').as_view(model=YourPdfModel)), # custom pdf view with the name 'custom-name'
-    ...
+    path('custom/url/path/<str:pk>/', WagtailWeasyView.as_view(model=YourPdfModel), name='your-model-name')
 ]
-```
+``` 
 
-### Using a custom ButtonHelper or PermissionHelper
-
-This library implements an easier extendable `ButtonHelper`.
-
-If you are using a custom `ButtonHelper`, you should inherit from `ExtendableButtonHelperMixin` or `PdfViewButtonHelper`,
-otherwise you will not see a button for the PDF-view of the object in `ModelAdmin`s `ListView`.
-
-Example:
-```py
-# wagtail_hooks.py
-
-class MyCustomButtonHelper(PdfViewButtonHelper):
-    
-    # simplified button registration
-    # (action, properties)
-    custom_object_buttons = [
-        ("custom", {"label": 'Custom Label'}),
-        ("some_action", {"label": 'Another Action'}),
-    ]
-```
-
-Note that `custom_object_buttons` is defaulted with the actions *pdf* and *live* in `PdfViewButtonHelper`.
-
-
-If you are setting a custom `PermissionHelper`, you need to inherit from `CustomActionPermissionHelperMixin`.
-
-## Further customizations
-
-Instead of using the predefined pdf view class `WagtailWeasyView`, a custom class can be used a view:
-
-```py
-# views.py
-
-from wagtail_pdf_view.views import WagtailWeasyView, AdminViewMixin, register_pdf_view, register_pdf_admin_view
-
-# register your custom pdf view class
-@register_pdf_view('custom-name')
-class CustomWagtailWeasyView(WagtailWeasyView):
-
-    # Extend the class as preferenced
-    pass
-
-# (optional)
-# register your custom pdf view class for restricted admin view
-@register_pdf_admin_view('custom-name')
-class CustomWagtailWeasyAdminView(AdminViewMixin, CustomWagtailWeasyView):
-
-    # Extend the class as preferenced
-    pass
-
-```
 
 ### Settings
 
 The following settings are supported:
-- `WAGTAIL_PDF_VIEW` and `WAGTAIL_PDF_ADMIN_VIEW` to hook in custom view classes
-- `WAGTAIL_DEFAULT_PDF_OPTIONS` and `WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS` to set global options for weasyprint
+- `WAGTAIL_DEFAULT_PDF_OPTIONS`, `WAGTAIL_PREVIEW_PDF_OPTIONS`, and `WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS` to set global options for weasyprint
 - `WAGTAIL_PDF_VIEWER` to configure a different pdf viewer (instead of _pdf.js_) in the panel preview
 - `WEASYPRINT_BASEURL` to fix static files loading problems, e.g. when using docker (from [django-weasyprint](https://github.com/fdemmer/django-weasyprint))
 
 ```py
 # settings.py
 
-# using a custom view class
-WAGTAIL_PDF_VIEW = "custom-name"
-WAGTAIL_PDF_ADMIN_VIEW = "custom-name"
-
 # set default compiler options for weasyprint (e.g. to disable `pdf_forms` or to set the embedded image `dpi`)
 WAGTAIL_DEFAULT_PDF_OPTIONS = {'pdf_forms': False}
 WAGTAIL_DEFAULT_PDF_OPTIONS = {'dpi': 50}
+
+# set default compiler options for weasyprint during preview (e.g. to disable `pdf_forms` in every preview) 
+WAGTAIL_PREVIEW_PDF_OPTIONS = {'pdf_forms': False}
 
 # set the compiler options for weasyprint when rendering inside the preview panel
 WAGTAIL_PREVIEW_PANEL_PDF_OPTIONS = {'pdf_forms': True}
@@ -408,6 +398,7 @@ You need to add django_tex to `INSTALLED_APPS`, add the jinja tex engine to `TEM
 INSTALLED_APPS = [
     ...
     'wagtail_pdf_view',
+    'wagtail_pdf_view_tex',
     'wagtail.contrib.routable_page',
     'django_tex',
     ...
@@ -419,18 +410,15 @@ TEMPLATES += [
         'BACKEND': 'django_tex.engine.TeXEngine', 
         'APP_DIRS': True,
         'OPTIONS': {
-            'environment': 'wagtail_pdf_view.environment.latex_environment',
+            'environment': 'wagtail_pdf_view_tex.environment.latex_environment',
         },
     },
 ]
 
-
-WAGTAIL_PDF_VIEW = 'django-tex'
-WAGTAIL_PDF_ADMIN_VIEW = 'django-tex'
 ```
 
 
-In case you just want to use latex for a specific model settings you can overrite `pdf_view_class` and leave `WAGTAIL_PDF_VIEW='weasyprint'` _(default)_:
+The `pdf_view_class` of each `Model`, `Page`, and `ModelViewSet` need to be changed to `WagtailTexView`:
 
 ```py
 # models.py
