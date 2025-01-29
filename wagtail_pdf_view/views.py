@@ -441,7 +441,7 @@ class PdfAdminIndexView(LiveIndexViewMixin, generic.IndexView):
         return buttons
 
 
-class PdfAdminViewSetMixin:
+class PdfAdminViewSetMixin(PdfViewSetMixin):
     """
     Makes a model accessible as PDF for admin panel users
     """

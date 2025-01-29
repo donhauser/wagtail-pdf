@@ -17,7 +17,7 @@ def package_files(directory):
 
 setuptools.setup(
     name='wagtail-pdf-view',
-    version='1.1.0',
+    version='2.0.0',
     description='PDF rendering views for the Wagtail CMS',
     long_description=long_description,
     long_description_content_type='text/markdown',
