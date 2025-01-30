@@ -425,7 +425,7 @@ class PdfViewPageMixin(BasePreviewablePdfMixin, MultipleViewPageMixin):
         The mode names are assigned by get_preview_mode_name
         """
 
-        return [(mode, self.get_preview_mode_name(mode)) for mode, *_ in type(self).ROUTE_CONFIG]
+        return [(mode, self.get_preview_mode_name(mode)) for mode, value, *_ in type(self).ROUTE_CONFIG if value]
 
     def serve_html(self, request, **kwargs):
         return super().serve(request)
