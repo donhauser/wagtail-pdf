@@ -69,9 +69,7 @@ Please follow the "Using LaTeX" instructions below.
 ## Usage for Pages
 
 All you need to do to render your Wagtail `Page` as PDF, is to inherit from `PdfViewPageMixin`.
-If you want to render a model instead, read the section **ModelAdmin** below.
-
-**If you want to use latex, read the latex section below.**
+If you want to render a model instead, read the section **Models and ModelViewSets** below.
 
 A page inheriting from `PdfViewPageMixin` can be further configured with the options:
 - `ROUTE_CONFIG` to enable rendering of the default HTML view and the PDF view at the same time
@@ -82,9 +80,7 @@ A page inheriting from `PdfViewPageMixin` can be further configured with the opt
 ## Examples
 
 A very simple example page using Wagtails `StreamField`.
-Like for a regular Wagtail `Page`, the template should be located under: `<app_dir>/templates/<app>/simple_pdf_page.html`
-
-**If you're using django-tex the template extention .tex is expected**.
+Like for a regular Wagtail `Page`, the template should be located under: `<app_dir>/templates/<app>/<page>.html`
 
 ```py
 # models.py
@@ -92,37 +88,41 @@ Like for a regular Wagtail `Page`, the template should be located under: `<app_d
 from wagtail.models import Page
 from wagtail.fields import RichTextField, StreamField
 from wagtail import blocks
-from wagtail.admin.edit_handlers import FieldPanel, StreamField
+from wagtail.admin.panels import FieldPanel
 
 from wagtail_pdf_view.mixins import PdfViewPageMixin
 
 # Inherit from PdfViewPageMixin
-class SimplePdfPage(PdfViewPageMixin, Page):
-    
+class YourPdfPage(PdfViewPageMixin, Page):
+
     # you can create fields as you're used to, e.g. StreamField
     content = StreamField([
         ("heading", blocks.CharBlock(form_classname="full title")),
         ("text", blocks.RichTextBlock()),
     ], blank=True)
-    
+
     # content panel for the CMS (same as always)
     content_panels = Page.content_panels + [
-        StreamField("content"),
+        FieldPanel("content"),
     ]
     
     # OPTIONAL: If you want to include a stylesheet
     #stylesheets = ["css/your_stylesheet.css"]
 ```
 
-### Usage of `ROUTE_CONFIG`:
+### Adjusting the page routing:
 
-By default, i.e. without setting `ROUTE_CONFIG`, only the pdf-view is available, i.e. you may only view this page as pdf.
-This is useful when you just want to display a generated pdf document easily.
+By default, a page with `PdfViewPageMixin` is rendered PDF using weasyprint, substituting the default wagtail HTML page serving.
+Nevertheless, it is possible to use both, the PDF rendering and wagtail's HTML serving for the same page.
+
+The required changes in the page routing can configured by specifying a custom `ROUTE_CONFIG`, with two possible variants:
+- A HTML first page: You can access the wagtail page as you're used e.g. *127.0.0.1/mypage*. The PDF version will be available under *pdf/* e.g. *127.0.0.1/mypage/pdf*
+- A PDF first page: The PDF version is displayed with the regular url and you can access the wagtail page under */html*, e.g. *127.0.0.1/mypage/html*
 
 ```py
 # models.py
 
-class PdfOnlyPage(PdfViewPageMixin, Page):
+class YourPdfPage(PdfViewPageMixin, Page):
 
     # PDF only (default case)
     ROUTE_CONFIG = [
@@ -130,37 +130,11 @@ class PdfOnlyPage(PdfViewPageMixin, Page):
         ("html", None),
     ]
     
-```
-
-
-
-A HTML first page: You can access the wagtail page as you're used e.g. *127.0.0.1/mypage*.
-The PDF version will be available under *pdf/* e.g. *127.0.0.1/mypage/pdf*
-
-```py
-# models.py
-
-class HtmlAndPdfPage(PdfViewPageMixin, Page):
-
     # HTML first
     ROUTE_CONFIG = [
         ("html", r'^$'),
         ("pdf", r'^pdf/$'),
     ]
-    
-```
-
-Note that the order of *html* and *pdf* is not arbitrary:
-The entry you set first, will be displayed by default when using wagtails preview function. Depending on your case, you may want to put *pdf* in the first place, so your editors get the pdf-view by default, while html-page url stays the same for the users.
-In both cases your editors may access both views through the drop-down menu integrated in the preview button.
-
-A PDF first page: The PDF version is displayed with the regular url and
-you can access the wagtail page under */html*, e.g. *127.0.0.1/mypage/html*
-
-```py
-# models.py
-
-class HtmlAndPdfPage(PdfViewPageMixin, Page):
     
     # PDF first
     ROUTE_CONFIG = [
@@ -171,6 +145,11 @@ class HtmlAndPdfPage(PdfViewPageMixin, Page):
 ```
 
 `ROUTE_CONFIG` is build on wagtails [routable_page](https://docs.wagtail.io/en/stable/reference/contrib/routablepage.html), you can specify routes as desired (e.g. `("html", r'^web/$')`)
+
+Note that the order of *html* and *pdf* is not arbitrary:
+The entry you set first, will be displayed by default when using wagtails preview function.
+In both cases your editors may access both views through the drop-down menu integrated in the preview button.
+Further customization is possible by adjusting `Page.get_preview_modes()`.
 
 #### Reversing and using URLs in templates
 
@@ -217,7 +196,7 @@ In python code `Page.reverse_subpage()` can be used to reverse a HTML-first page
 page.reverse_subpage('pdf')
 ```
 
-## Usage with Models and ModelViewSet
+## Models and ModelViewSets
 
 Besides pages, it is also possible to render models as PDF.
 
@@ -417,19 +396,22 @@ TEMPLATES += [
 
 ```
 
+### Example
 
 The `pdf_view_class` of each `Model`, `Page`, and `ModelViewSet` need to be changed to `WagtailTexView`:
 
 ```py
 # models.py
 
-from wagtail_pdf_view.views import WagtailTexView
+from wagtail_pdf_view_tex.views import WagtailTexView
 
-class SimplePdfPage(PdfViewPageMixin, Page):
+class YourPdfPage(PdfViewPageMixin, Page):
 
     # render with LaTeX instead
     pdf_view_class = WagtailTexView
 ```
+
+For `WagtailTexView`, the template extention *.tex* is expected and should be located under: `<app_dir>/templates/<app>/<page>.tex`
 
 In general you should include *wagtail_preamble.tex*, which provides required packages and commands for proper richtext handling.
 
